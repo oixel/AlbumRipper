@@ -8,37 +8,49 @@ import { randomUUID } from 'crypto';
 import path from 'path';
 import os from 'os';
 
-export const POST: RequestHandler = async ({ request }) => {
+async function downloadMP3(url: string) {
+    // Store audio data into a temporary file so it can be return to user as a data buffer
     const tempFile = path.join(os.tmpdir(), `${randomUUID()}.mp3`);
 
     try {
-        const { url } = await request.json() as { url: string };
 
+        // Download audio from video at given URL
         await youtubedl(url, {
             extractAudio: true,
             audioFormat: 'mp3',
             audioQuality: 0,
-            output: tempFile,
+            output: tempFile
         });
 
-        // 
+        // Convert audio data from youtubedl into a data buffer and delete temporary file
         const buffer = await readFile(tempFile);
         await unlink(tempFile);
 
-        return new Response(buffer,
-            {
-                headers: {
-                    'Content-Type': 'audio/mpeg',
-                    'Content-Length': buffer.length.toString()
-                }
-            });
+        // Return the new data buffer to the requesting page to download its content
+        return new Response(buffer, {
+            headers: {
+                'Content-Type': 'audio/mpeg',
+                'Content-Length': buffer.length.toString()
+            }
+        });
     } catch (error) {
-        // Attempt to clean up temporary file if it still exists in the case of an error
+        // Delete tempFile in case of an error
         try {
             await unlink(tempFile);
         } catch { }
 
-        const message = error instanceof Error ? error.message : 'Unknown Error';
-        return new Response(JSON.stringify({ error: message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        const message = error instanceof Error ? error.message : 'Unknown ERROR';
+
+        // Return ERROR data with message
+        return new Response(JSON.stringify({ error: message }),
+            {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            });
     }
-} 
+}
+
+export const POST: RequestHandler = async ({ request }) => {
+    const { url } = await request.json() as { url: string };
+    return await downloadMP3(url);
+}
