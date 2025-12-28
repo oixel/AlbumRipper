@@ -3,13 +3,10 @@
 
 import youtubedl from 'youtube-dl-exec';
 import type { RequestHandler } from './$types';
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { unlink, readFile } from 'fs/promises';
 import { randomUUID } from 'crypto';
 import path from 'path';
 import os from 'os';
-
-process.env.FFMPEG_PATH = ffmpegInstaller.path;
 
 export const POST: RequestHandler = async ({ request }) => {
     const tempFile = path.join(os.tmpdir(), `${randomUUID()}.mp3`);
@@ -22,7 +19,6 @@ export const POST: RequestHandler = async ({ request }) => {
             audioFormat: 'mp3',
             audioQuality: 0,
             output: tempFile,
-            ffmpegLocation: ffmpegInstaller.path
         });
 
         // 
