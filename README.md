@@ -1,31 +1,38 @@
-# AlbumRipper
-A tool designed to easily download albums for portable music players.
+# sv
 
-## Planning
-Currently I am looking towards two different APIs that might allow the streamlining of finding tracklists.
-1) [Discog API](https://www.discogs.com/developers)
-2) [MusicBrainz API](https://musicbrainz.org/doc/MusicBrainz_API)
+Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
 
-I am leaning more towards MusicBrainz as it is entirely free and does not require any API keys.
+## Creating a project
 
----
+If you're seeing this, you've probably already done this step. Congrats!
 
-For use with MusicBrainz queries can be done as such:
-For finding a specific album (e.g. Getting Killed): `https://musicbrainz.org/ws/2/release/?query=album:Getting_Killed`
-- This will return a lot of XML data, but the main goal is the find the correct album's "MusicBrainz ID" (MBID)
-- This can be found in the release tag...
+```sh
+# create a new project in the current directory
+npx sv create
 
-_For example:_
-`<release id="0bf006ce-45a5-4963-89cb-cd285fd768bb" ns2:score="100">`
+# create a new project in my-app
+npx sv create my-app
+```
 
-If we then take this ID into another query: `https://musicbrainz.org/ws/2/release/0bf006ce-45a5-4963-89cb-cd285fd768bb?inc=recordings&fmt=json`
-- This will then return the tracklist information!
+## Developing
 
-To get the cover art, another query can be used: `https://coverartarchive.org/release/0bf006ce-45a5-4963-89cb-cd285fd768bb`
+Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
 
-_NOTE:_
-- The initial query returns a LOT of results (5000+).
-- Need to figure out two main things:
-  1) How to filter out by artist in addition (if user inputs an artist)
-  2) How to filter out by "format" of 'Digital Media'
-    - The non-Digital Media formats have poor quality cover art
+```sh
+npm run dev
+
+# or start the server and open the app in a new browser tab
+npm run dev -- --open
+```
+
+## Building
+
+To create a production version of your app:
+
+```sh
+npm run build
+```
+
+You can preview the production build with `npm run preview`.
+
+> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
