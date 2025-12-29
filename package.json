@@ -37,6 +37,7 @@
 		"vite": "^7.2.6"
 	},
 	"dependencies": {
+		"node-id3": "^0.2.9",
 		"youtube-dl-exec": "^3.0.28"
 	}
 }

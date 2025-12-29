@@ -13,41 +13,33 @@
 		message = '';
 
 		try {
-			const response = await fetch(`/api/metadata?url=${encodeURIComponent(url)}`);
-			const data = await response.json();
+			const response = await fetch('/api/download', {
+				method: 'POST',
+				headers: { 'Content-Type': 'applications/json' },
+				body: JSON.stringify({ url })
+			});
 
-			if (response.ok) {
-				console.log(data);
+			if (response.ok && response.headers.get('Content-Type') == 'audio/mpeg') {
+				// Grab the file's proper filename (created with metadata)
+				const filename = response.headers.get('File-Name') as string;
+
+				// Create an invisible link with the content and force download it
+				const blob = await response.blob();
+				const downloadUrl = window.URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = downloadUrl;
+				a.download = filename;
+				document.body.appendChild(a);
+				a.click();
+				window.URL.revokeObjectURL(downloadUrl);
+				document.body.removeChild(a);
+
+				message = 'Download successful!';
 			} else {
-				console.error('Error:', data.error);
+				const data = await response.json();
+				message = `Ran into ERROR: ${data.error}`;
+				error = true;
 			}
-
-			// const response = await fetch('/api/download', {
-			// 	method: 'POST',
-			// 	headers: { 'Content-Type': 'applications/json' },
-			// 	body: JSON.stringify({ url })
-			// });
-
-			// if (response.ok && response.headers.get('Content-Type') == 'audio/mpeg') {
-			// 	const filename = 'song.mp3';
-
-			// 	// Create an invisible link with the content and force download it
-			// 	const blob = await response.blob();
-			// 	const downloadUrl = window.URL.createObjectURL(blob);
-			// 	const a = document.createElement('a');
-			// 	a.href = downloadUrl;
-			// 	a.download = filename;
-			// 	document.body.appendChild(a);
-			// 	a.click();
-			// 	window.URL.revokeObjectURL(downloadUrl);
-			// 	document.body.removeChild(a);
-
-			// 	message = 'Download successful!';
-			// } else {
-			// 	const data = await response.json();
-			// 	message = `Ran into ERROR: ${data.error}`;
-			// 	error = true;
-			// }
 		} catch (error) {
 			message = 'Failed to download MP3...';
 			error = true;
@@ -117,7 +109,7 @@
 		}}
 		disabled={loading || !url}
 		class="mx-auto max-w-32 rounded-md border-2 bg-black px-2 py-1 text-white transition-transform duration-75
-        {url
+        {url && !loading
 			? 'hover:scale-105 hover:cursor-pointer'
 			: 'hover:cursor-not-allowed'} disabled:bg-gray-500"
 	>
