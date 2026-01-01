@@ -5,5 +5,5 @@ body {
 }
 
 button {
-    @apply hover:cursor-pointer px-2 py-1 border-2 rounded-md transition-transform duration-75 hover:scale-105 hover:bg-yellow-200;
+    @apply not-disabled:cursor-pointer px-2 py-1 border-2 rounded-md transition-transform duration-75 not-disabled:hover:scale-105 not-disabled:hover:bg-yellow-200;
 }

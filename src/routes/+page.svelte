@@ -1,16 +1,62 @@
 <script lang="ts">
+	import type { Album } from '$lib/interfaces/Album';
+
 	let settingsOpen = false;
 	let revealToken = false;
+	let accessToken = '';
 
 	//
 	let searchByName = true;
+	let artistName = '';
+	let albumName = '';
 
 	let url = '';
 	let loading = false;
 	let error = false;
 	let message = '';
 
-	let accessToken = '';
+	async function getMusicBrainzMetadata() {
+		console.log('Reached');
+		const idSearchURL = `https://musicbrainz.org/ws/2/release/?query=artist:"${artistName}" AND release:"${albumName}"&fmt=json`;
+
+		const idSearchResponse = await fetch(idSearchURL);
+		const idSearchData = await idSearchResponse.json();
+
+		console.log('Reached 2');
+
+		if (idSearchData.releases && idSearchData.releases.length > 0) {
+			const id = idSearchData.releases[0].id;
+			const dataSearchURL = `https://musicbrainz.org/ws/2/release/${id}?inc=recordings&fmt=json`;
+
+			console.log('ID:', id);
+
+			const dataSearchResponse = await fetch(dataSearchURL);
+			const data = await dataSearchResponse.json();
+
+			console.log('Reached 3');
+
+			if (data.media && data.media.length > 0) {
+				let album: Album;
+
+				const tracklist = data.media[0].tracks;
+
+				console.log('Media Data:', data.media);
+				console.log('Tracklist Data:', data.media[0].tracks);
+
+				// Loop through all songs in the tracklist and fille the album object with data
+				for (let track of tracklist) {
+					console.log(track.title);
+				}
+			} else {
+				console.log('Album data not found.');
+			}
+		} else {
+			console.log('ID not found.');
+		}
+
+		//
+		return null;
+	}
 
 	async function downloadSong() {
 		loading = true;
@@ -60,9 +106,14 @@
 	}
 
 	async function downloadByName() {
-		error = true;
-		message = 'Download by Name feature is not yet implemented...';
-		console.log(message);
+		try {
+			// if (!accessToken) {
+			// 	error = true;
+			// 	message = 'Please input your MusicBrainz API token in the settings menu (top right).';
+			// 	return;
+			// }
+			getMusicBrainzMetadata();
+		} catch (error) {}
 	}
 
 	// Downloads either playlist or single song based on URL passed in
@@ -111,21 +162,33 @@
 			</p>
 		{/if}
 
-		<input
-			bind:value={url}
-			placeholder={searchByName ? 'Album Name' : 'YouTube Playlist/Song URL'}
-			class="w-full max-w-lg self-center border-2 py-1 pl-2"
-		/>
+		{#if searchByName}
+			<div class="flex flex-col justify-center gap-4">
+				<input
+					bind:value={artistName}
+					placeholder="Artist"
+					class="w-full max-w-md self-center border-2 py-1 pl-2"
+				/>
+				<input
+					bind:value={albumName}
+					placeholder="Album Name"
+					class="w-full max-w-md self-center border-2 py-1 pl-2"
+				/>
+			</div>
+		{:else}
+			<input
+				bind:value={url}
+				placeholder="YouTube Playlist/Song URL"
+				class="w-full max-w-lg self-center border-2 py-1 pl-2"
+			/>
+		{/if}
 
 		<button
 			onclick={() => {
 				searchByName ? downloadByName() : downloadByURL();
 			}}
-			disabled={loading || !url}
-			class="mx-auto max-w-32 bg-black text-white
-        {url && !loading
-				? 'hover:scale-105 hover:cursor-pointer'
-				: 'hover:cursor-not-allowed'} disabled:bg-gray-500"
+			disabled={loading || (!searchByName && !url) || (searchByName && (!artistName || !albumName))}
+			class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
 		>
 			{loading ? 'Downloading...' : 'Download'}
 		</button>
@@ -133,7 +196,7 @@
 		{#if message}<p class="{error ? 'text-red-500' : 'text-green-500'} italic">{message}</p>{/if}
 	{:else}
 		<label for="token-input" class="self-center font-bold">MusicBrainz API Access Token</label>
-		<div class="flex w-full max-w-full flex-row justify-center gap-5 self-center">
+		<div class="flex w-full max-w-full justify-center gap-5 self-center">
 			<input
 				name="token-input"
 				bind:value={accessToken}
