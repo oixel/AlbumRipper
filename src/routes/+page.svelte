@@ -1,4 +1,7 @@
 <script lang="ts">
+	let settingsOpen = false;
+	let revealToken = false;
+
 	//
 	let searchByName = true;
 
@@ -6,6 +9,8 @@
 	let loading = false;
 	let error = false;
 	let message = '';
+
+	let accessToken = '';
 
 	async function downloadSong() {
 		loading = true;
@@ -67,54 +72,83 @@
 </script>
 
 <div class="flex flex-col gap-5">
-	<h1 class="text-center text-4xl select-none">Album Ripper</h1>
-	<div class="mx-auto">
-		<button
-			on:click={() => {
-				message = '';
-				searchByName = true;
-			}}
-			class="rounded-md border-2 px-2 py-1 transition-transform duration-75 hover:scale-105 hover:cursor-pointer
-            {searchByName ? 'bg-yellow-200 font-bold' : 'bg-white'}"
-		>
-			By Name
-		</button>
-		<button
-			on:click={() => {
-				message = '';
-				searchByName = false;
-			}}
-			class="rounded-md border-2 px-2 py-1 transition-transform duration-75 hover:scale-105 hover:cursor-pointer
-            {!searchByName ? 'bg-yellow-200 font-bold' : 'bg-white'}"
-		>
-			By URL
-		</button>
-	</div>
-
-	{#if !searchByName}
-		<p class="text-center italic">
-			Use <u>YouTube Music</u> URL for proper metadata
-		</p>
-	{/if}
-
-	<input
-		bind:value={url}
-		placeholder={searchByName ? 'Album Name' : 'YouTube Playlist/Song URL'}
-		class="w-full max-w-lg self-center border-2 py-1 pl-2"
-	/>
-
+	<h1 class="text-center text-4xl select-none">{!settingsOpen ? 'Album Ripper' : 'Settings'}</h1>
 	<button
-		on:click={() => {
-			searchByName ? downloadByName() : downloadByURL();
+		class="fixed h-12 w-12 self-end"
+		onclick={() => {
+			settingsOpen = !settingsOpen;
 		}}
-		disabled={loading || !url}
-		class="mx-auto max-w-32 rounded-md border-2 bg-black px-2 py-1 text-white transition-transform duration-75
-        {url && !loading
-			? 'hover:scale-105 hover:cursor-pointer'
-			: 'hover:cursor-not-allowed'} disabled:bg-gray-500"
 	>
-		{loading ? 'Downloading...' : 'Download'}
+		{!settingsOpen ? '⚙️' : '❌'}
 	</button>
 
-	{#if message}<p class="{error ? 'text-red-500' : 'text-green-500'} italic">{message}</p>{/if}
+	<!-- Regular Ripper Menu -->
+	{#if !settingsOpen}
+		<div class="mx-auto">
+			<button
+				onclick={() => {
+					message = '';
+					searchByName = true;
+				}}
+				class={searchByName ? 'bg-yellow-200 font-bold' : 'bg-white'}
+			>
+				By Name
+			</button>
+			<button
+				onclick={() => {
+					message = '';
+					searchByName = false;
+				}}
+				class={!searchByName ? 'bg-yellow-200 font-bold' : 'bg-white'}
+			>
+				By URL
+			</button>
+		</div>
+
+		{#if !searchByName}
+			<p class="text-center italic">
+				Use <u>YouTube Music</u> URL for proper metadata
+			</p>
+		{/if}
+
+		<input
+			bind:value={url}
+			placeholder={searchByName ? 'Album Name' : 'YouTube Playlist/Song URL'}
+			class="w-full max-w-lg self-center border-2 py-1 pl-2"
+		/>
+
+		<button
+			onclick={() => {
+				searchByName ? downloadByName() : downloadByURL();
+			}}
+			disabled={loading || !url}
+			class="mx-auto max-w-32 bg-black text-white
+        {url && !loading
+				? 'hover:scale-105 hover:cursor-pointer'
+				: 'hover:cursor-not-allowed'} disabled:bg-gray-500"
+		>
+			{loading ? 'Downloading...' : 'Download'}
+		</button>
+
+		{#if message}<p class="{error ? 'text-red-500' : 'text-green-500'} italic">{message}</p>{/if}
+	{:else}
+		<label for="token-input" class="self-center font-bold">MusicBrainz API Access Token</label>
+		<div class="flex w-full max-w-full flex-row justify-center gap-5 self-center">
+			<input
+				name="token-input"
+				bind:value={accessToken}
+				placeholder="Enter MusicBrainz token here"
+				type={revealToken ? 'text' : 'password'}
+				class="w-full max-w-lg border-2 py-1 pl-2"
+			/>
+			<button
+				onclick={() => {
+					revealToken = !revealToken;
+				}}
+				class="w-16"
+			>
+				{!revealToken ? 'Show' : 'Hide'}
+			</button>
+		</div>
+	{/if}
 </div>
