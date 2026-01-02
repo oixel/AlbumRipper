@@ -3,10 +3,6 @@
 	import { Track } from '$lib/classes/Track';
 	import TrackEntry from '$lib/components/TrackEntry.svelte';
 
-	let settingsOpen = $state(false);
-	let revealToken = $state(false);
-	let accessToken = $state('');
-
 	//
 	let searchByName = $state(true);
 	let artistName = $state('');
@@ -156,125 +152,96 @@
 </script>
 
 <div class="flex flex-col gap-5">
-	<h1 class="text-center text-4xl select-none">{!settingsOpen ? 'Album Ripper' : 'Settings'}</h1>
-	<button
-		class="fixed h-12 w-12 self-end"
-		onclick={() => {
-			settingsOpen = !settingsOpen;
-		}}
-	>
-		{!settingsOpen ? '⚙️' : '❌'}
-	</button>
+	<h1 class="text-center text-4xl select-none">Album Ripper</h1>
 
 	<!-- Regular Ripper Menu -->
-	{#if !settingsOpen}
-		<div class="mx-auto">
-			<button
-				onclick={() => {
-					message = '';
-					searchByName = true;
-				}}
-				class={searchByName ? 'bg-yellow-200 font-bold' : 'bg-white'}
-			>
-				By Name
-			</button>
-			<button
-				onclick={() => {
-					message = '';
-					searchByName = false;
-				}}
-				class={!searchByName ? 'bg-yellow-200 font-bold' : 'bg-white'}
-			>
-				By URL
-			</button>
+	<div class="mx-auto">
+		<button
+			onclick={() => {
+				message = '';
+				searchByName = true;
+			}}
+			class={searchByName ? 'bg-yellow-200 font-bold' : 'bg-white'}
+		>
+			By Name
+		</button>
+		<button
+			onclick={() => {
+				message = '';
+				searchByName = false;
+			}}
+			class={!searchByName ? 'bg-yellow-200 font-bold' : 'bg-white'}
+		>
+			By URL
+		</button>
+	</div>
+
+	{#if searchByName}
+		<div class="flex flex-col justify-center gap-4">
+			<input
+				bind:value={artistName}
+				placeholder="Artist"
+				class="w-full max-w-md self-center border-2 py-1 pl-2"
+			/>
+			<input
+				bind:value={albumName}
+				placeholder="Album Name"
+				class="w-full max-w-md self-center border-2 py-1 pl-2"
+			/>
 		</div>
 
-		{#if searchByName}
-			<div class="flex flex-col justify-center gap-4">
-				<input
-					bind:value={artistName}
-					placeholder="Artist"
-					class="w-full max-w-md self-center border-2 py-1 pl-2"
-				/>
-				<input
-					bind:value={albumName}
-					placeholder="Album Name"
-					class="w-full max-w-md self-center border-2 py-1 pl-2"
-				/>
-			</div>
+		<button
+			onclick={() => {
+				searchByNameAndArtist();
+			}}
+			disabled={loading || (searchByName && (!artistName || !albumName))}
+			class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
+		>
+			{loading ? 'Searching...' : 'Search'}
+		</button>
 
-			<button
-				onclick={() => {
-					searchByNameAndArtist();
-				}}
-				disabled={loading || (searchByName && (!artistName || !albumName))}
-				class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
-			>
-				{loading ? 'Searching...' : 'Search'}
-			</button>
-
-			{#if album}
-				<div class="flex items-center justify-center gap-5">
-					<img
-						src={album.coverURL}
-						alt={`Album cover for the album ${album.name}`}
-						class="aspect-square h-64"
-					/>
-					<div class="flex max-h-64 flex-col items-center justify-center gap-2">
-						<h2 class="font-bold">{album.name} Tracklist:</h2>
-						<div class="h-fit w-lg max-w-lg overflow-auto rounded-md border-2 p-2">
-							{#each album.tracklist as track}
-								<TrackEntry
-									name={track.name}
-									trackNumber={track.trackNumber}
-									videoURL={track.videoURL}
-								/>
-							{/each}
-						</div>
+		{#if album}
+			<div class="flex items-center justify-center gap-5">
+				<img
+					src={album.coverURL}
+					alt={`Album cover for the album ${album.name}`}
+					class="aspect-square h-64"
+				/>
+				<div class="flex max-h-64 flex-col items-center justify-center gap-2">
+					<h2 class="font-bold">{album.name} Tracklist:</h2>
+					<div class="h-fit w-lg max-w-lg overflow-auto rounded-md border-2 p-2">
+						{#each album.tracklist as track}
+							<TrackEntry
+								name={track.name}
+								trackNumber={track.trackNumber}
+								videoURL={track.videoURL}
+							/>
+						{/each}
 					</div>
 				</div>
-			{/if}
-		{:else}
-			<p class="text-center italic">
-				Use <u>YouTube Music</u> URL for proper metadata
-			</p>
-
-			<input
-				bind:value={url}
-				placeholder="YouTube Playlist/Song URL"
-				class="w-full max-w-lg self-center border-2 py-1 pl-2"
-			/>
-
-			<button
-				onclick={() => {
-					downloadByURL();
-				}}
-				disabled={loading || (!searchByName && !url)}
-				class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
-			>
-				{loading ? 'Downloading...' : 'Download'}
-			</button>
+			</div>
 		{/if}
-
-		{#if message}<p class="{error ? 'text-red-500' : 'text-green-500'} italic">{message}</p>{/if}
 	{:else}
-		<label for="token-input" class="self-center font-bold">MusicBrainz API Access Token</label>
-		<div class="flex max-h-fit w-full max-w-full justify-center gap-5 self-center">
-			<input
-				name="token-input"
-				bind:value={accessToken}
-				placeholder="Enter MusicBrainz token here"
-				type={revealToken ? 'text' : 'password'}
-				class="w-full max-w-lg border-2 py-1 pl-2"
-			/>
-			<button
-				onclick={() => {
-					revealToken = !revealToken;
-				}}
-				class="w-16"
-			>
-				{!revealToken ? 'Show' : 'Hide'}
-			</button>
-		</div>
+		<p class="text-center italic">
+			Use <u>YouTube Music</u> URL for proper metadata
+		</p>
+
+		<input
+			bind:value={url}
+			placeholder="YouTube Playlist/Song URL"
+			class="w-full max-w-lg self-center border-2 py-1 pl-2"
+		/>
+
+		<button
+			onclick={() => {
+				downloadByURL();
+			}}
+			disabled={loading || (!searchByName && !url)}
+			class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
+		>
+			{loading ? 'Downloading...' : 'Download'}
+		</button>
 	{/if}
+
+	{#if message}<p class="{error ? 'text-red-500' : 'text-green-500'} italic">{message}</p>{/if}
 </div>
