@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Album } from '$lib/classes/Album.svelte';
-	import { Track } from '$lib/classes/Track';
+	import { Track } from '$lib/classes/Track.svelte';
 	import TrackEntry from '$lib/components/TrackEntry.svelte';
 
 	//
@@ -8,6 +8,7 @@
 	let artistName = $state('');
 	let albumName = $state('');
 	let album: Album | null = $state(null);
+	let tracklistLength: number = $state(0);
 	let editingAlbum = $state(false);
 
 	let url = $state('');
@@ -16,19 +17,19 @@
 	let message = $state('');
 
 	async function getMusicBrainzMetadata() {
-		const idSearchURL = `https://musicbrainz.org/ws/2/release/?query=artist:"${artistName}" AND release:"${albumName}"&fmt=json`;
+		// Wipe currently stored album
+		album = null;
 
-		const idSearchResponse = await fetch(idSearchURL);
-		const idSearchData = await idSearchResponse.json();
+		// Find release ID for the most relevant track with given artist and album names
+		const idSearchURL = `https://musicbrainz.org/ws/2/release/?query=artist:"${artistName}" AND release:"${albumName}"&fmt=json`;
+		const idSearchData = await fetch(idSearchURL).then((result) => result.json());
 
 		if (idSearchData.releases && idSearchData.releases.length > 0) {
 			const id = idSearchData.releases[0].id;
 			const dataSearchURL = `https://musicbrainz.org/ws/2/release/${id}?inc=recordings&fmt=json`;
+			const data = await fetch(dataSearchURL).then((result) => result.json());
 
 			console.log('ID:', id);
-
-			const dataSearchResponse = await fetch(dataSearchURL);
-			const data = await dataSearchResponse.json();
 
 			if (data.media && data.media.length > 0) {
 				let coverURL = `https://coverartarchive.org/release/${id}/front`;
@@ -44,19 +45,31 @@
 				album = new Album(idSearchData.releases[0].title, coverURL);
 
 				const tracklist = data.media[0].tracks;
+				tracklistLength = tracklist.length;
 
 				// Loop through all tracks in the tracklist and fille the album object with data
 				for (let track of tracklist) {
+					// Find all artists that worked on this track and store there names
+					const artistsData = await fetch(
+						`http://musicbrainz.org/ws/2/recording/${track.recording.id}?inc=releases+artists&fmt=json`
+					).then((result) => result.json());
+					const artists: Array<string> = artistsData['artist-credit'].map((artist) => artist.name);
+
+					// Create a new track object from the queried data
 					let newTrack: Track = new Track(
-						track.recording.title,
-						artistName,
 						track.position,
+						track.recording.title,
+						artists,
 						track.recording.length
 					);
 
-					const query = `${newTrack.artist} ${newTrack.name} official audio`;
-					const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-					const data = await response.json();
+					console.log('Artists for', newTrack.name, 'are', artists);
+
+					// Queries for the song's video on YouTube by combining the track's info
+					const query = `${artists.join(' ')} ${newTrack.name} official audio`;
+					const data = await fetch(`/api/search?q=${encodeURIComponent(query)}`).then((response) =>
+						response.json()
+					);
 
 					// If a video was found for the song, store it in the object!
 					if (data && data.video) {
@@ -134,10 +147,9 @@
 
 		loading = true;
 
-		album = null;
-
 		try {
 			await getMusicBrainzMetadata();
+			if (album) message = `Successfully found songs in ${album.name}!`;
 		} catch (err) {
 			error = true;
 			message = `ERROR while searching by name and artist: ${err}.`;
@@ -178,18 +190,30 @@
 	</div>
 
 	{#if searchByName}
-		<div class="flex flex-col justify-center gap-4">
-			<input
-				bind:value={artistName}
-				placeholder="Artist"
-				class="w-full max-w-md self-center border-2 py-1 pl-2"
-			/>
-			<input
-				bind:value={albumName}
-				placeholder="Album Name"
-				class="w-full max-w-md self-center border-2 py-1 pl-2"
-			/>
+		<div class="flex flex-col items-center justify-center gap-4">
+			<div class="flex w-full max-w-md items-center justify-center gap-4">
+				<label for="artist-name"><b>Artist:</b></label>
+				<input
+					name="artist-name"
+					bind:value={artistName}
+					placeholder="Artist Name"
+					class="w-full border-2 py-1 pl-2"
+				/>
+			</div>
+			<div class="flex w-full max-w-md items-center justify-center gap-4">
+				<label for="album-name"><b>Album:</b></label>
+				<input
+					name="album-name"
+					bind:value={albumName}
+					placeholder="Album Name"
+					class="w-full border-2 py-1 pl-2"
+				/>
+			</div>
 		</div>
+
+		<p class="mx-auto">
+			<i>If the album is not what you expect or data is missing, refresh or search again!</i>
+		</p>
 
 		<button
 			onclick={() => {
@@ -235,11 +259,19 @@
 				<div class="flex max-h-64 flex-col items-center justify-center gap-2">
 					<h2 class="font-bold">{album.name} Tracklist:</h2>
 					<div
-						class="flex h-fit w-lg max-w-lg flex-col gap-1 overflow-auto rounded-md border-2 p-2"
+						class="flex h-fit w-lg max-w-lg flex-col gap-1 overflow-auto rounded-md border-2 p-2 pl-4"
 					>
 						{#each album.tracklist as track}
-							<TrackEntry {track} />
+							<TrackEntry {track} {album} {loading} />
 						{/each}
+						{#if loading}
+							<p>
+								<i
+									>Search for songs in {album.name} ({album.tracklist
+										.length}/{tracklistLength})...</i
+								>
+							</p>
+						{/if}
 					</div>
 				</div>
 			</div>
