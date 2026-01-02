@@ -8,6 +8,7 @@
 	let artistName = $state('');
 	let albumName = $state('');
 	let album: Album | null = $state(null);
+	let editingAlbum = $state(false);
 
 	let url = $state('');
 	let loading = $state(false);
@@ -193,6 +194,7 @@
 		<button
 			onclick={() => {
 				searchByNameAndArtist();
+				editingAlbum = false;
 			}}
 			disabled={loading || (searchByName && (!artistName || !albumName))}
 			class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
@@ -202,20 +204,41 @@
 
 		{#if album}
 			<div class="flex items-center justify-center gap-5">
-				<img
-					src={album.coverURL}
-					alt={`Album cover for the album ${album.name}`}
-					class="aspect-square h-64"
-				/>
+				<div class="flex flex-col items-center justify-center gap-2">
+					{#if !editingAlbum}
+						<img
+							src={album.coverURL}
+							alt={`Album cover for the album ${album.name}`}
+							class="aspect-square h-64"
+						/>
+					{:else}
+						<textarea
+							bind:value={album.coverURL}
+							placeholder="Album Cover Image URL"
+							class="aspect-square h-64 resize-none border-2 py-1 pl-2 wrap-break-word"
+						></textarea>
+					{/if}
+					<div class="flex items-center justify-center gap-4">
+						{#if !editingAlbum}
+							<p class="text-md font-bold">{album.name}</p>
+						{:else}
+							<input bind:value={album.name} placeholder="Album Name" class="border-2 py-1 pl-2" />
+						{/if}
+						<button
+							class="flex h-8 w-8 items-center justify-center"
+							onclick={() => {
+								editingAlbum = !editingAlbum;
+							}}><p>{editingAlbum ? '✅' : '✏️'}</p></button
+						>
+					</div>
+				</div>
 				<div class="flex max-h-64 flex-col items-center justify-center gap-2">
 					<h2 class="font-bold">{album.name} Tracklist:</h2>
-					<div class="h-fit w-lg max-w-lg overflow-auto rounded-md border-2 p-2">
+					<div
+						class="flex h-fit w-lg max-w-lg flex-col gap-1 overflow-auto rounded-md border-2 p-2"
+					>
 						{#each album.tracklist as track}
-							<TrackEntry
-								name={track.name}
-								trackNumber={track.trackNumber}
-								videoURL={track.videoURL}
-							/>
+							<TrackEntry {track} />
 						{/each}
 					</div>
 				</div>
