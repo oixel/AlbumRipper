@@ -7,3 +7,7 @@ body {
 button {
     @apply not-disabled:cursor-pointer px-2 py-1 border-2 rounded-md transition-transform duration-75 not-disabled:hover:scale-105 not-disabled:hover:bg-yellow-200;
 }
+
+a {
+    @apply text-blue-600 underline;
+}

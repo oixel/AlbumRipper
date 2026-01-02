@@ -1,22 +1,22 @@
 <script lang="ts">
-	import { Album } from '$lib/classes/Album';
-	import { Song } from '$lib/classes/Song';
+	import { Album } from '$lib/classes/Album.svelte';
+	import { Track } from '$lib/classes/Track';
 	import TrackEntry from '$lib/components/TrackEntry.svelte';
 
-	let settingsOpen = false;
-	let revealToken = false;
-	let accessToken = '';
+	let settingsOpen = $state(false);
+	let revealToken = $state(false);
+	let accessToken = $state('');
 
 	//
-	let searchByName = true;
-	let artistName = '';
-	let albumName = '';
-	let album: Album | null = null;
+	let searchByName = $state(true);
+	let artistName = $state('');
+	let albumName = $state('');
+	let album: Album | null = $state(null);
 
-	let url = '';
-	let loading = false;
-	let error = false;
-	let message = '';
+	let url = $state('');
+	let loading = $state(false);
+	let error = $state(false);
+	let message = $state('');
 
 	async function getMusicBrainzMetadata() {
 		const idSearchURL = `https://musicbrainz.org/ws/2/release/?query=artist:"${artistName}" AND release:"${albumName}"&fmt=json`;
@@ -48,17 +48,29 @@
 
 				const tracklist = data.media[0].tracks;
 
-				// Loop through all songs in the tracklist and fille the album object with data
+				// Loop through all tracks in the tracklist and fille the album object with data
 				for (let track of tracklist) {
-					let newSong: Song = new Song(
+					let newTrack: Track = new Track(
 						track.recording.title,
+						artistName,
 						track.position,
 						track.recording.length
 					);
 
-					album.tracklist.push(newSong);
+					const query = `${newTrack.artist} ${newTrack.name} official audio`;
+					const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+					const data = await response.json();
 
-					console.log(newSong);
+					// If a video was found for the song, store it in the object!
+					if (data && data.video) {
+						newTrack.videoURL = data.video.url;
+					}
+
+					// Append this new song to the end of the album's tracklist array
+					album.tracklist.push(newTrack);
+
+					// Intentionally delay next query to prevent hitting API limit
+					await new Promise((resolve) => setTimeout(resolve, 500));
 				}
 			} else {
 				console.log('Album data not found.');
@@ -105,9 +117,9 @@
 				message = `Ran into ERROR: ${data.error}`;
 				error = true;
 			}
-		} catch (error) {
-			message = 'Failed to download MP3...';
+		} catch (_) {
 			error = true;
+			message = 'Failed to download MP3...';
 		} finally {
 			loading = false;
 		}
@@ -120,22 +132,18 @@
 	}
 
 	async function searchByNameAndArtist() {
-		album = null;
 		error = false;
 		message = '';
 
 		loading = true;
 
+		album = null;
+
 		try {
-			// if (!accessToken) {
-			// 	error = true;
-			// 	message = 'Please input your MusicBrainz API token in the settings menu (top right).';
-			// 	return;
-			// }
-			getMusicBrainzMetadata();
-		} catch (error) {
+			await getMusicBrainzMetadata();
+		} catch (err) {
 			error = true;
-			message = `ERROR while searching by name and artist: ${error}.`;
+			message = `ERROR while searching by name and artist: ${err}.`;
 		} finally {
 			loading = false;
 		}
@@ -206,15 +214,24 @@
 			</button>
 
 			{#if album}
-				<h2 class="mx-auto font-bold">Tracklist:</h2>
-				<div class="mx-auto max-h-64 w-fit max-w-xl overflow-auto rounded-md border-2 px-4">
-					{#each album.tracklist as track}
-						<TrackEntry
-							name={track.name}
-							trackNumber={track.trackNumber}
-							duration={track.duration}
-						/>
-					{/each}
+				<div class="flex items-center justify-center gap-5">
+					<img
+						src={album.coverURL}
+						alt={`Album cover for the album ${album.name}`}
+						class="aspect-square h-64"
+					/>
+					<div class="flex max-h-64 flex-col items-center justify-center gap-2">
+						<h2 class="font-bold">{album.name} Tracklist:</h2>
+						<div class="h-fit w-lg max-w-lg overflow-auto rounded-md border-2 p-2">
+							{#each album.tracklist as track}
+								<TrackEntry
+									name={track.name}
+									trackNumber={track.trackNumber}
+									videoURL={track.videoURL}
+								/>
+							{/each}
+						</div>
+					</div>
 				</div>
 			{/if}
 		{:else}

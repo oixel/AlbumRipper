@@ -50,7 +50,9 @@ async function downloadMP3(url: string) {
         // Delete tempFile in case of an error
         try {
             await unlink(tempFile);
-        } catch { }
+        } catch {
+            console.log("ERROR while unlinking temporary file.")
+        }
 
         const message = error instanceof Error ? error.message : 'Unknown ERROR';
 

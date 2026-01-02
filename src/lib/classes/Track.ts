@@ -1,12 +1,13 @@
-export class Song {
+export class Track {
     name: string = '';
     artist: string = '';
     trackNumber: number = 0;
     duration: number = 0;
+    videoURL: string = '';
 
-    constructor(name: string, trackNumber: number, duration: number) {
+    constructor(name: string, artist: string, trackNumber: number, duration: number) {
         this.name = name;
-        this.artist = '';
+        this.artist = artist;
 
         this.trackNumber = trackNumber;
         this.duration = duration;

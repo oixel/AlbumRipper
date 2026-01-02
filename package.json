@@ -38,6 +38,7 @@
 	},
 	"dependencies": {
 		"node-id3": "^0.2.9",
-		"youtube-dl-exec": "^3.0.28"
+		"youtube-dl-exec": "^3.0.28",
+		"youtube-search-without-api-key": "^2.0.7"
 	}
 }
