@@ -1,5 +1,7 @@
 <script lang="ts">
-	import type { Album } from '$lib/interfaces/Album';
+	import { Album } from '$lib/classes/Album';
+	import { Song } from '$lib/classes/Song';
+	import TrackEntry from '$lib/components/TrackEntry.svelte';
 
 	let settingsOpen = false;
 	let revealToken = false;
@@ -9,6 +11,7 @@
 	let searchByName = true;
 	let artistName = '';
 	let albumName = '';
+	let album: Album | null = null;
 
 	let url = '';
 	let loading = false;
@@ -16,13 +19,10 @@
 	let message = '';
 
 	async function getMusicBrainzMetadata() {
-		console.log('Reached');
 		const idSearchURL = `https://musicbrainz.org/ws/2/release/?query=artist:"${artistName}" AND release:"${albumName}"&fmt=json`;
 
 		const idSearchResponse = await fetch(idSearchURL);
 		const idSearchData = await idSearchResponse.json();
-
-		console.log('Reached 2');
 
 		if (idSearchData.releases && idSearchData.releases.length > 0) {
 			const id = idSearchData.releases[0].id;
@@ -33,25 +33,39 @@
 			const dataSearchResponse = await fetch(dataSearchURL);
 			const data = await dataSearchResponse.json();
 
-			console.log('Reached 3');
-
 			if (data.media && data.media.length > 0) {
-				let album: Album;
+				let coverURL = `https://coverartarchive.org/release/${id}/front`;
+				const coverResponse = await fetch(coverURL);
+
+				// Overwrite cover URL with unknown album cover image
+				if (!coverResponse.ok) {
+					console.log('No album cover found...');
+				} else {
+					console.log('Cover URL:', coverURL);
+				}
+
+				album = new Album(idSearchData.releases[0].title, coverURL);
 
 				const tracklist = data.media[0].tracks;
 
-				console.log('Media Data:', data.media);
-				console.log('Tracklist Data:', data.media[0].tracks);
-
 				// Loop through all songs in the tracklist and fille the album object with data
 				for (let track of tracklist) {
-					console.log(track.title);
+					let newSong: Song = new Song(
+						track.recording.title,
+						track.position,
+						track.recording.length
+					);
+
+					album.tracklist.push(newSong);
+
+					console.log(newSong);
 				}
 			} else {
 				console.log('Album data not found.');
 			}
 		} else {
-			console.log('ID not found.');
+			error = true;
+			message = `Album "${albumName}" by "${artistName}" not found. Please try again!`;
 		}
 
 		//
@@ -105,7 +119,13 @@
 		console.log(message);
 	}
 
-	async function downloadByName() {
+	async function searchByNameAndArtist() {
+		album = null;
+		error = false;
+		message = '';
+
+		loading = true;
+
 		try {
 			// if (!accessToken) {
 			// 	error = true;
@@ -113,7 +133,12 @@
 			// 	return;
 			// }
 			getMusicBrainzMetadata();
-		} catch (error) {}
+		} catch (error) {
+			error = true;
+			message = `ERROR while searching by name and artist: ${error}.`;
+		} finally {
+			loading = false;
+		}
 	}
 
 	// Downloads either playlist or single song based on URL passed in
@@ -156,12 +181,6 @@
 			</button>
 		</div>
 
-		{#if !searchByName}
-			<p class="text-center italic">
-				Use <u>YouTube Music</u> URL for proper metadata
-			</p>
-		{/if}
-
 		{#if searchByName}
 			<div class="flex flex-col justify-center gap-4">
 				<input
@@ -175,28 +194,55 @@
 					class="w-full max-w-md self-center border-2 py-1 pl-2"
 				/>
 			</div>
+
+			<button
+				onclick={() => {
+					searchByNameAndArtist();
+				}}
+				disabled={loading || (searchByName && (!artistName || !albumName))}
+				class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
+			>
+				{loading ? 'Searching...' : 'Search'}
+			</button>
+
+			{#if album}
+				<h2 class="mx-auto font-bold">Tracklist:</h2>
+				<div class="mx-auto max-h-64 w-fit max-w-xl overflow-auto rounded-md border-2 px-4">
+					{#each album.tracklist as track}
+						<TrackEntry
+							name={track.name}
+							trackNumber={track.trackNumber}
+							duration={track.duration}
+						/>
+					{/each}
+				</div>
+			{/if}
 		{:else}
+			<p class="text-center italic">
+				Use <u>YouTube Music</u> URL for proper metadata
+			</p>
+
 			<input
 				bind:value={url}
 				placeholder="YouTube Playlist/Song URL"
 				class="w-full max-w-lg self-center border-2 py-1 pl-2"
 			/>
-		{/if}
 
-		<button
-			onclick={() => {
-				searchByName ? downloadByName() : downloadByURL();
-			}}
-			disabled={loading || (!searchByName && !url) || (searchByName && (!artistName || !albumName))}
-			class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
-		>
-			{loading ? 'Downloading...' : 'Download'}
-		</button>
+			<button
+				onclick={() => {
+					downloadByURL();
+				}}
+				disabled={loading || (!searchByName && !url)}
+				class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
+			>
+				{loading ? 'Downloading...' : 'Download'}
+			</button>
+		{/if}
 
 		{#if message}<p class="{error ? 'text-red-500' : 'text-green-500'} italic">{message}</p>{/if}
 	{:else}
 		<label for="token-input" class="self-center font-bold">MusicBrainz API Access Token</label>
-		<div class="flex w-full max-w-full justify-center gap-5 self-center">
+		<div class="flex max-h-fit w-full max-w-full justify-center gap-5 self-center">
 			<input
 				name="token-input"
 				bind:value={accessToken}
