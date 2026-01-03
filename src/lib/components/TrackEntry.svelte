@@ -5,6 +5,8 @@
 	let { track, album, loading }: { track: Track; album: Album; loading: boolean } = $props();
 
 	let editing = $state(false);
+
+	let artistsString = $derived(track.artists.join(','));
 </script>
 
 <div class="flex gap-2">
@@ -12,6 +14,12 @@
 		<button
 			class="flex h-8 w-8 items-center justify-center"
 			onclick={() => {
+				// Update artists array in Track object if it has been changed
+				if (editing && artistsString != track.artists.join(',')) {
+					track.artists = artistsString.replaceAll(', ', ',').split(',');
+				}
+
+				//
 				editing = !editing;
 			}}
 		>
@@ -20,10 +28,19 @@
 	{/if}
 
 	{#if !editing}
-		<p><b>Track #{track.number}</b> - {track.name}</p>
-		<a href={track.videoURL} aria-label={`YouTube Video URL for track named ${track.name}`}
-			>[ Video ]</a
+		<p class="flex-1">
+			<b>Track #{track.number}</b> - {track.name}
+			<b>Artist{track.artists.length > 1 ? 's' : ''}:</b>
+			{track.artists.join(', ')}
+		</p>
+		<a
+			class="flex-nowrap"
+			href={track.videoURL}
+			aria-label={`YouTube Video URL for track named ${track.name}`}
+			target="_blank"
 		>
+			[ Video ]
+		</a>
 	{:else}
 		<button
 			class="flex h-8 w-8 items-center justify-center"
@@ -43,6 +60,11 @@
 		/>
 		<input
 			bind:value={track.name}
+			placeholder="Track Name"
+			class="w-full max-w-md self-center border-2 py-1 pl-2"
+		/>
+		<input
+			bind:value={artistsString}
 			placeholder="Track Name"
 			class="w-full max-w-md self-center border-2 py-1 pl-2"
 		/>

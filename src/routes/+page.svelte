@@ -49,7 +49,7 @@
 
 				// Loop through all tracks in the tracklist and fille the album object with data
 				for (let track of tracklist) {
-					// Find all artists that worked on this track and store there names
+					// Find all artists that worked on this track and store their names
 					const artistsData = await fetch(
 						`http://musicbrainz.org/ws/2/recording/${track.recording.id}?inc=releases+artists&fmt=json`
 					).then((result) => result.json());
@@ -164,6 +164,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Album Ripper</title>
+</svelte:head>
+
 <div class="flex flex-col gap-5">
 	<h1 class="text-center text-4xl select-none">Album Ripper</h1>
 
@@ -192,20 +196,20 @@
 	{#if searchByName}
 		<div class="flex flex-col items-center justify-center gap-4">
 			<div class="flex w-full max-w-md items-center justify-center gap-4">
-				<label for="artist-name"><b>Artist:</b></label>
-				<input
-					name="artist-name"
-					bind:value={artistName}
-					placeholder="Artist Name"
-					class="w-full border-2 py-1 pl-2"
-				/>
-			</div>
-			<div class="flex w-full max-w-md items-center justify-center gap-4">
 				<label for="album-name"><b>Album:</b></label>
 				<input
 					name="album-name"
 					bind:value={albumName}
 					placeholder="Album Name"
+					class="w-full border-2 py-1 pl-2"
+				/>
+			</div>
+			<div class="flex w-full max-w-md items-center justify-center gap-4">
+				<label for="artist-name"><b>Artist:</b></label>
+				<input
+					name="artist-name"
+					bind:value={artistName}
+					placeholder="Artist Name"
 					class="w-full border-2 py-1 pl-2"
 				/>
 			</div>
@@ -256,10 +260,10 @@
 						>
 					</div>
 				</div>
-				<div class="flex max-h-64 flex-col items-center justify-center gap-2">
+				<div class="flex max-h-72 flex-col items-center justify-center gap-2">
 					<h2 class="font-bold">{album.name} Tracklist:</h2>
 					<div
-						class="flex h-fit w-lg max-w-lg flex-col gap-1 overflow-auto rounded-md border-2 p-2 pl-4"
+						class="flex h-fit w-xl max-w-xl flex-col gap-1 overflow-auto rounded-md border-2 p-2 px-4"
 					>
 						{#each album.tracklist as track}
 							<TrackEntry {track} {album} {loading} />
@@ -298,5 +302,9 @@
 		</button>
 	{/if}
 
-	{#if message}<p class="{error ? 'text-red-500' : 'text-green-500'} italic">{message}</p>{/if}
+	{#if message}
+		<p class="{error ? 'text-red-500' : 'text-green-500'} self-center italic">
+			{message}
+		</p>
+	{/if}
 </div>
