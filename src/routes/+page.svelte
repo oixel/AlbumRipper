@@ -488,17 +488,24 @@
 	{/if}
 
 	{#if message}
-		<p class="{error ? 'text-red-500' : 'text-green-500'} self-center italic">
+		<p class="{error ? 'text-red-500' : 'text-green-500'} self-center italic select-none">
 			{message}
 		</p>
 	{/if}
 
 	{#if isNameSearch && album && album.tracklist.length == tracklistLength}
 		<div class="flex items-center justify-center gap-2">
-			<label for="audio-quality" class="font-bold">Audio Quality:</label>
+			<div
+				class="group relative inline-block cursor-pointer border-b-2 border-dotted font-bold select-none"
+			>
+				Audio Quality:
+				<span
+					class="absolute bottom-full left-1/2 z-10 mb-2 hidden min-w-80 -translate-x-1/2 transform rounded-md bg-black px-2 py-1 text-xs text-white group-hover:block"
+					>NOTE: The highest quality (10) will be roughly 3x the memory of the lowest quality (1).</span
+				>
+			</div>
 			<input
 				bind:value={audioQuality}
-				name="audio-quality"
 				placeholder="Audo Quality"
 				class="w-12 self-center border-2 py-1 pl-2"
 				type="number"
@@ -506,9 +513,6 @@
 				max="10"
 			/>
 		</div>
-		<p class="self-center">
-			<i>NOTE: The highest quality (10) will be roughly 3x the memory of the lowest quality (1).</i>
-		</p>
 		<button
 			onclick={() => downloadByNames()}
 			disabled={downloadProgress.downloading}
