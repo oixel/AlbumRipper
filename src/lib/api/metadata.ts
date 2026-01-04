@@ -1,5 +1,7 @@
 import youtubedl from 'youtube-dl-exec';
 import NodeID3 from 'node-id3';
+import type { Track } from '$lib/classes/Track.svelte';
+import type { Album } from '$lib/classes/Album.svelte';
 
 export async function getMetadata(url: string) {
     try {
@@ -53,4 +55,29 @@ export async function writeMetadata(metadata: any, filePath: string) {
     // Attempt to write to the MP3 data buffer
     const success = await NodeID3.write(tags, filePath);
     if (!success) console.error("Failed to write metadata for URL:", url);
+}
+
+// Takes Track and Album objects and writes the metadata into the file at the given path
+export async function writeTrackMetadata(filePath: string, track: Track, album: Album) {
+    // Convert metadata to NodeID3's tags
+    const tags = {
+        title: track.name,
+        artist: track.artists.join(','),
+        album: album.name,
+        trackNumber: track.number.toString(),
+        length: track.duration.toString(),
+        image: {
+            mime: 'image/jpeg',
+            type: {
+                id: 0,
+                name: 'front cover'
+            },
+            description: `Front cover for ${album.name}.`,
+            imageBuffer: album.coverBuffer
+        }
+    }
+
+    // Write to the MP3 data buffer
+    const success = await NodeID3.write(tags, filePath);
+    if (!success) console.error("Failed to write metadata to track:", track.name);
 }

@@ -4,12 +4,13 @@
 	import TrackEntry from '$lib/components/TrackEntry.svelte';
 
 	//
-	let searchByName = $state(true);
+	let isNameSearch = $state(true);
 	let artistName = $state('');
 	let albumName = $state('');
 	let album: Album | null = $state(null);
 	let tracklistLength: number = $state(0);
 	let editingAlbum = $state(false);
+	let downloadedCount = $state(0);
 
 	let url = $state('');
 	let loading = $state(false);
@@ -42,7 +43,7 @@
 					console.log('Cover URL:', coverURL);
 				}
 
-				album = new Album(idSearchData.releases[0].title, coverURL);
+				album = new Album(idSearchData.releases[0].title, artistName, coverURL);
 
 				const tracklist = data.media[0].tracks;
 				tracklistLength = tracklist.length;
@@ -53,7 +54,9 @@
 					const artistsData = await fetch(
 						`http://musicbrainz.org/ws/2/recording/${track.recording.id}?inc=releases+artists&fmt=json`
 					).then((result) => result.json());
-					const artists: Array<string> = artistsData['artist-credit'].map((artist) => artist.name);
+					const artists: Array<string> = artistsData['artist-credit'].map(
+						(artist: any) => artist.name
+					);
 
 					// Create a new track object from the queried data
 					let newTrack: Track = new Track(
@@ -62,8 +65,6 @@
 						artists,
 						track.recording.length
 					);
-
-					console.log('Artists for', newTrack.name, 'are', artists);
 
 					// Queries for the song's video on YouTube by combining the track's info
 					const query = `${artists.join(' ')} ${newTrack.name} official audio`;
@@ -141,7 +142,7 @@
 		console.log(message);
 	}
 
-	async function searchByNameAndArtist() {
+	async function searchByNames() {
 		error = false;
 		message = '';
 
@@ -155,6 +156,129 @@
 			message = `ERROR while searching by name and artist: ${err}.`;
 		} finally {
 			loading = false;
+		}
+	}
+
+	//
+	let downloadProgress = $state({
+		downloading: false,
+		downloadCount: 0,
+		total: 0,
+		currentTrack: '',
+		status: '',
+		downloadID: ''
+	});
+
+	//
+	async function downloadByNames() {
+		if (!album || album.tracklist.length == 0) return;
+
+		downloadProgress.downloading = true;
+		error = false;
+		message = '';
+
+		// Ensure that cover image is converted to image data buffer to avoid fetching it for each track
+		await album.storeCoverData();
+
+		try {
+			// Start the download
+			const startResponse = await fetch('/api/download', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					album: {
+						name: album.name,
+						artist: album.artist,
+						tracklist: album.tracklist.map((track) => ({
+							name: track.name,
+							artists: track.artists,
+							number: track.number,
+							duration: track.duration,
+							videoURL: track.videoURL
+						}))
+					}
+				})
+			});
+
+			if (!startResponse.ok) {
+				throw new Error('Failed to start download.');
+			}
+
+			//
+			const { downloadID } = await startResponse.json();
+			downloadProgress.downloadID = downloadID;
+
+			// Continuously poll for progress on downloads every second
+			const pollInterval = setInterval(async () => {
+				try {
+					const statusResponse = await fetch(`/api/download?id=${downloadID}&isStatusCheck=true`);
+
+					if (!statusResponse.ok) {
+						clearInterval(pollInterval);
+						error = true;
+						message = 'Failed to get download status.';
+						return;
+					}
+
+					const status = await statusResponse.json();
+
+					//
+					downloadProgress.downloadCount = status.downloadCount;
+					downloadProgress.total = status.total;
+					downloadProgress.status = status.status;
+					downloadProgress.currentTrack = status.currentTrack || '';
+
+					//
+					if (status.error) {
+						clearInterval(pollInterval);
+						error = true;
+						message = `Error: ${status.error}`;
+						downloadProgress.downloading = false;
+						return;
+					}
+
+					// Download the file when status indicates done
+					if (status.done && album) {
+						clearInterval(pollInterval);
+
+						//
+						const zipFileResponse = await fetch(
+							`/api/download?id=${downloadID}&isStatusCheck=false`
+						);
+
+						if (zipFileResponse.ok) {
+							// Create an invisible link with the content and force download it
+							const blob = await zipFileResponse.blob();
+							const downloadUrl = window.URL.createObjectURL(blob);
+							const a = document.createElement('a');
+							a.href = downloadUrl;
+							a.download = `${album.name} - ${album.artist}.zip`;
+							document.body.appendChild(a);
+							a.click();
+							window.URL.revokeObjectURL(downloadUrl);
+							document.body.removeChild(a);
+
+							message = 'Album download successful!';
+						} else {
+							error = true;
+							message = 'Failed to download file.';
+						}
+
+						downloadProgress.downloading = false;
+					}
+				} catch (err) {
+					clearInterval(pollInterval);
+					error = true;
+					message = 'ERROR while checking download status.';
+					downloadProgress.downloading = false;
+					console.error('Polling ERROR:', err);
+				}
+			}, 1000);
+		} catch (err) {
+			error = true;
+			message = err instanceof Error ? err.message : 'Unknown error';
+			downloadProgress.downloading = false;
+			console.error('Download ERROR:', err);
 		}
 	}
 
@@ -176,30 +300,31 @@
 		<button
 			onclick={() => {
 				message = '';
-				searchByName = true;
+				isNameSearch = true;
 			}}
-			class={searchByName ? 'bg-yellow-200 font-bold' : 'bg-white'}
+			class={isNameSearch ? 'bg-yellow-200 font-bold' : 'bg-white'}
 		>
 			By Name
 		</button>
 		<button
 			onclick={() => {
 				message = '';
-				searchByName = false;
+				isNameSearch = false;
 			}}
-			class={!searchByName ? 'bg-yellow-200 font-bold' : 'bg-white'}
+			class={!isNameSearch ? 'bg-yellow-200 font-bold' : 'bg-white'}
 		>
 			By URL
 		</button>
 	</div>
 
-	{#if searchByName}
+	{#if isNameSearch}
 		<div class="flex flex-col items-center justify-center gap-4">
 			<div class="flex w-full max-w-md items-center justify-center gap-4">
 				<label for="album-name"><b>Album:</b></label>
 				<input
 					name="album-name"
 					bind:value={albumName}
+					disabled={loading}
 					placeholder="Album Name"
 					class="w-full border-2 py-1 pl-2"
 				/>
@@ -209,6 +334,7 @@
 				<input
 					name="artist-name"
 					bind:value={artistName}
+					disabled={loading}
 					placeholder="Artist Name"
 					class="w-full border-2 py-1 pl-2"
 				/>
@@ -221,10 +347,10 @@
 
 		<button
 			onclick={() => {
-				searchByNameAndArtist();
+				searchByNames();
 				editingAlbum = false;
 			}}
-			disabled={loading || (searchByName && (!artistName || !albumName))}
+			disabled={loading || (isNameSearch && (!artistName || !albumName))}
 			class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
 		>
 			{loading ? 'Searching...' : 'Search'}
@@ -248,16 +374,19 @@
 					{/if}
 					<div class="flex items-center justify-center gap-4">
 						{#if !editingAlbum}
-							<p class="text-md font-bold">{album.name}</p>
+							<p class="text-md font-bold">{album.name} - {album.artist}</p>
 						{:else}
 							<input bind:value={album.name} placeholder="Album Name" class="border-2 py-1 pl-2" />
+							<input bind:value={album.artist} placeholder="Artist" class="border-2 py-1 pl-2" />
 						{/if}
-						<button
-							class="flex h-8 w-8 items-center justify-center"
-							onclick={() => {
-								editingAlbum = !editingAlbum;
-							}}><p>{editingAlbum ? '✅' : '✏️'}</p></button
-						>
+						{#if !loading}
+							<button
+								class="flex h-8 w-8 items-center justify-center"
+								onclick={() => {
+									editingAlbum = !editingAlbum;
+								}}><p>{editingAlbum ? '✅' : '✏️'}</p></button
+							>
+						{/if}
 					</div>
 				</div>
 				<div class="flex max-h-72 flex-col items-center justify-center gap-2">
@@ -270,10 +399,9 @@
 						{/each}
 						{#if loading}
 							<p>
-								<i
-									>Search for songs in {album.name} ({album.tracklist
-										.length}/{tracklistLength})...</i
-								>
+								<i>
+									Search for songs in {album.name} ({album.tracklist.length}/{tracklistLength})...
+								</i>
 							</p>
 						{/if}
 					</div>
@@ -292,10 +420,8 @@
 		/>
 
 		<button
-			onclick={() => {
-				downloadByURL();
-			}}
-			disabled={loading || (!searchByName && !url)}
+			onclick={() => downloadByURL()}
+			disabled={loading || (!isNameSearch && !url)}
 			class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
 		>
 			{loading ? 'Downloading...' : 'Download'}
@@ -306,5 +432,20 @@
 		<p class="{error ? 'text-red-500' : 'text-green-500'} self-center italic">
 			{message}
 		</p>
+	{/if}
+
+	{#if isNameSearch && album && album.tracklist.length == tracklistLength}
+		<button
+			onclick={() => downloadByNames()}
+			disabled={downloadProgress.downloading}
+			class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
+		>
+			{downloadProgress.downloading ? 'Downloading...' : 'Download'}
+		</button>
+	{/if}
+
+	{#if downloadProgress.downloading}
+		<p>Downloading track ({downloadProgress.downloadCount}/{downloadProgress.total})</p>
+		<p>Current Status: {downloadProgress.status}</p>
 	{/if}
 </div>
