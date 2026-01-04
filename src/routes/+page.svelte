@@ -7,6 +7,7 @@
 	let isNameSearch = $state(true);
 	let artistName = $state('');
 	let albumName = $state('');
+	let isDeluxe = $state(false);
 	let album: Album | null = $state(null);
 	let tracklistLength: number = $state(0);
 	let editingAlbum = $state(false);
@@ -26,23 +27,27 @@
 		const idSearchData = await fetch(idSearchURL).then((result) => result.json());
 
 		if (idSearchData.releases && idSearchData.releases.length > 0) {
-			const id = idSearchData.releases[0].id;
+			// Initialize desired album to best search result
+			let correctAlbum = idSearchData.releases[0];
+
+			// If deluxe album is desired, find deluxe version using the releases disambiguation tag
+			if (isDeluxe) {
+				for (let release of idSearchData.releases) {
+					if (release.disambiguation == 'deluxe') {
+						correctAlbum = release;
+						break;
+					}
+				}
+			}
+
+			const id = correctAlbum.id;
 			const dataSearchURL = `https://musicbrainz.org/ws/2/release/${id}?inc=recordings&fmt=json`;
 			const data = await fetch(dataSearchURL).then((result) => result.json());
 
 			if (data.media && data.media.length > 0) {
 				let coverURL = `https://coverartarchive.org/release/${id}/front`;
-				const coverResponse = await fetch(coverURL);
 
-				// Grabs best search result or
-				// let correctAlbum = idSearchData.releases[0];
-
-				album = new Album(
-					idSearchData.releases[0].title,
-					artistName,
-					data.date.substr(0, 4),
-					coverURL
-				);
+				album = new Album(correctAlbum.title, artistName, data.date.substr(0, 4), coverURL);
 
 				const tracklist = data.media[0].tracks;
 				tracklistLength = tracklist.length;
@@ -336,6 +341,11 @@
 					placeholder="Album Name"
 					class="w-full border-2 py-1 pl-2"
 				/>
+
+				<div class="flex items-center justify-center gap-2">
+					<input class="bg-red-300" type="checkbox" name="deluxe-toggle" bind:checked={isDeluxe} />
+					<label for="deluxe-toggle" class="pb-1">Deluxe?</label>
+				</div>
 			</div>
 			<div class="flex w-full max-w-md items-center justify-center gap-4">
 				<label for="artist-name"><b>Artist:</b></label>
