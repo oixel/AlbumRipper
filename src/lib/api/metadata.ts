@@ -75,8 +75,10 @@ export async function writeTrackMetadata(filePath: string, track: Track, album: 
     // Convert metadata to NodeID3's tags
     const tags: Record<string, unknown> = {
         title: track.name,
+        performerInfo: album.artist,
         artist: track.artists.join(','),
         album: album.name,
+        year: album.year,
         trackNumber: track.number.toString(),
         length: track.duration.toString()
     }

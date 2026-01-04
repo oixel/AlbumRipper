@@ -3,12 +3,14 @@ import type { Track } from "./Track.svelte";
 export class Album {
     name: string = $state('');
     artist: string = $state('');
+    year: string = $state('');
     coverURL: string = $state('');
     tracklist: Array<Track> = $state([]);
 
-    constructor(name: string = '', artist: string = '', coverURL: string = '') {
+    constructor(name: string = '', artist: string = '', year: string = '', coverURL: string = '') {
         this.name = name;
         this.artist = artist;
+        this.year = year;
         this.coverURL = coverURL;
     }
 

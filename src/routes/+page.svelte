@@ -34,7 +34,15 @@
 				let coverURL = `https://coverartarchive.org/release/${id}/front`;
 				const coverResponse = await fetch(coverURL);
 
-				album = new Album(idSearchData.releases[0].title, artistName, coverURL);
+				// Grabs best search result or
+				// let correctAlbum = idSearchData.releases[0];
+
+				album = new Album(
+					idSearchData.releases[0].title,
+					artistName,
+					data.date.substr(0, 4),
+					coverURL
+				);
 
 				const tracklist = data.media[0].tracks;
 				tracklistLength = tracklist.length;
@@ -164,6 +172,9 @@
 	async function downloadByNames() {
 		if (!album || album.tracklist.length == 0) return;
 
+		// Exit out of album edit mode
+		editingAlbum = false;
+
 		// Reset all variables from previous download
 		downloadProgress.downloadCount = 0;
 		downloadProgress.total = 0;
@@ -183,6 +194,7 @@
 					album: {
 						name: album.name,
 						artist: album.artist,
+						year: album.year,
 						coverURL: album.coverURL,
 						tracklist: album.tracklist.map((track) => ({
 							name: track.name,
@@ -385,7 +397,7 @@
 								{/if}
 							</div>
 							<div class="flex items-center justify-center gap-2">
-								<label for="album-artist"><b>Artist:</b></label>
+								<label for="album-artist"><b>Album Artist:</b></label>
 
 								{#if !editingAlbum}
 									<p>{album.artist}</p>
@@ -393,8 +405,25 @@
 									<input
 										bind:value={album.artist}
 										name="album-artist"
-										placeholder="Artist"
+										placeholder="Artist Name"
 										class="border-2 py-1 pl-2"
+									/>
+								{/if}
+							</div>
+							<div class="flex items-center justify-center gap-2">
+								<label for="album-year"><b>Release Year:</b></label>
+
+								{#if !editingAlbum}
+									<p>{album.year}</p>
+								{:else}
+									<input
+										bind:value={album.year}
+										name="album-year"
+										placeholder="Release Year"
+										class="border-2 py-1 pl-2"
+										type="number"
+										min="0"
+										max={new Date().getFullYear()}
 									/>
 								{/if}
 							</div>
