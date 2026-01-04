@@ -6,7 +6,7 @@ import type { RequestHandler } from './$types';
 import { unlink, readFile, mkdir, rm } from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import { writeTrackMetadata } from '$lib/api/metadata';
+import { writeTrackMetadata, fetchCoverImage } from '$lib/api/metadata';
 import type { Album } from '$lib/classes/Album.svelte';
 import { createWriteStream } from 'fs';
 import archiver from 'archiver';
@@ -98,6 +98,8 @@ async function downloadAlbum(downloadID: string, album: Album) {
 
         let downloadCount = 0;
 
+        const cover: Buffer | null = await fetchCoverImage(album.coverURL);
+
         // 
         for (const track of album.tracklist) {
             downloads.set(downloadID, {
@@ -122,7 +124,7 @@ async function downloadAlbum(downloadID: string, album: Album) {
             });
 
             // 
-            writeTrackMetadata(filepath, track, album);
+            writeTrackMetadata(filepath, track, album, cover);
 
             // 
             downloadCount++;
@@ -191,7 +193,7 @@ async function downloadAlbum(downloadID: string, album: Album) {
         try {
             await rm(tempDir, { recursive: true, force: true });
             await unlink(zipPath);
-        } catch (err) { console.log("ERROR while cleaning up in downloadAlbum():", err); }
+        } catch (err) { console.error("ERROR while cleaning up in downloadAlbum():", err); }
     }
 
 }
@@ -208,7 +210,6 @@ export const POST: RequestHandler = async ({ request }) => {
 
         // 
         downloadAlbum(downloadID, album);
-        console.log("Started well!");
         return json({ downloadID, message: 'Download started.' })
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error.';
@@ -226,7 +227,6 @@ export const GET: RequestHandler = async ({ url }) => {
     if (!download) return json({ error: "Download not found." }, { status: 404 });
 
     if (isStatusCheck) {
-        console.log("Polled");
         return json({
             downloadCount: download.downloadCount,
             total: download.total,

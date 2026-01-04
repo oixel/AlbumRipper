@@ -81,7 +81,7 @@
 					album.tracklist.push(newTrack);
 
 					// Intentionally delay next query to prevent hitting API limit
-					await new Promise((resolve) => setTimeout(resolve, 500));
+					await new Promise((resolve) => setTimeout(resolve, 250));
 				}
 			} else {
 				console.log('Album data not found.');
@@ -177,9 +177,6 @@
 		error = false;
 		message = '';
 
-		// Ensure that cover image is converted to image data buffer to avoid fetching it for each track
-		await album.storeCoverData();
-
 		try {
 			// Start the download
 			const startResponse = await fetch('/api/download', {
@@ -189,6 +186,7 @@
 					album: {
 						name: album.name,
 						artist: album.artist,
+						coverURL: album.coverURL,
 						tracklist: album.tracklist.map((track) => ({
 							name: track.name,
 							artists: track.artists,
@@ -379,7 +377,7 @@
 							<input bind:value={album.name} placeholder="Album Name" class="border-2 py-1 pl-2" />
 							<input bind:value={album.artist} placeholder="Artist" class="border-2 py-1 pl-2" />
 						{/if}
-						{#if !loading}
+						{#if !loading && !downloadProgress.downloading}
 							<button
 								class="flex h-8 w-8 items-center justify-center"
 								onclick={() => {
@@ -395,7 +393,7 @@
 						class="flex h-fit w-xl max-w-xl flex-col gap-1 overflow-auto rounded-md border-2 p-2 px-4"
 					>
 						{#each album.tracklist as track}
-							<TrackEntry {track} {album} {loading} />
+							<TrackEntry {track} {album} {loading} downloading={downloadProgress.downloading} />
 						{/each}
 						{#if loading}
 							<p>
@@ -445,7 +443,13 @@
 	{/if}
 
 	{#if downloadProgress.downloading}
-		<p>Downloading track ({downloadProgress.downloadCount}/{downloadProgress.total})</p>
-		<p>Current Status: {downloadProgress.status}</p>
+		<p class="self-center">
+			<b>Downloading Track:</b>
+			{downloadProgress.downloadCount} / {downloadProgress.total}
+		</p>
+		<p class="self-center">
+			<b>Current Status -</b>
+			{downloadProgress.status}
+		</p>
 	{/if}
 </div>

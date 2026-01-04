@@ -2,7 +2,12 @@
 	import type { Track } from '$lib/classes/Track.svelte';
 	import type { Album } from '$lib/classes/Album.svelte';
 
-	let { track, album, loading }: { track: Track; album: Album; loading: boolean } = $props();
+	let {
+		track,
+		album,
+		loading,
+		downloading
+	}: { track: Track; album: Album; loading: boolean; downloading: boolean } = $props();
 
 	let editing = $state(false);
 
@@ -10,7 +15,7 @@
 </script>
 
 <div class="flex gap-2">
-	{#if !loading}
+	{#if !loading && !downloading}
 		<button
 			class="flex h-8 w-8 items-center justify-center"
 			onclick={() => {
@@ -41,7 +46,7 @@
 		>
 			[ Video ]
 		</a>
-	{:else}
+	{:else if !downloading}
 		<button
 			class="flex h-8 w-8 items-center justify-center"
 			onclick={() => {
