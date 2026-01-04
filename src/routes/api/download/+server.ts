@@ -81,7 +81,7 @@ const downloads = new Map<string, {
     done: boolean;
 }>();
 
-async function downloadAlbum(downloadID: string, album: Album) {
+async function downloadAlbum(downloadID: string, album: Album, audioQuality: number) {
     const tempDir = path.join(os.tmpdir(), `album-${downloadID}`);
     const zipPath = path.join(os.tmpdir(), `album-${downloadID}.zip`);
 
@@ -118,7 +118,7 @@ async function downloadAlbum(downloadID: string, album: Album) {
             await youtubedl(track.videoURL, {
                 extractAudio: true,
                 audioFormat: 'mp3',
-                audioQuality: 0,
+                audioQuality: 10 - audioQuality,
                 output: filepath,
                 embedThumbnail: false
             });
@@ -204,12 +204,12 @@ export const POST: RequestHandler = async ({ request }) => {
     // return await downloadMP3(url);
 
     try {
-        const { album } = await request.json() as { album: Album };
+        const { album, audioQuality } = await request.json() as { album: Album, audioQuality: number };
 
         const downloadID = randomUUID();
 
         // 
-        downloadAlbum(downloadID, album);
+        downloadAlbum(downloadID, album, audioQuality);
         return json({ downloadID, message: 'Download started.' })
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error.';

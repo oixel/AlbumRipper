@@ -10,7 +10,7 @@
 	let album: Album | null = $state(null);
 	let tracklistLength: number = $state(0);
 	let editingAlbum = $state(false);
-	let downloadedCount = $state(0);
+	let audioQuality = $state(5);
 
 	let url = $state('');
 	let loading = $state(false);
@@ -164,7 +164,13 @@
 	async function downloadByNames() {
 		if (!album || album.tracklist.length == 0) return;
 
+		// Reset all variables from previous download
+		downloadProgress.downloadCount = 0;
+		downloadProgress.total = 0;
+		downloadProgress.currentTrack = '';
+		downloadProgress.status = '';
 		downloadProgress.downloading = true;
+
 		error = false;
 		message = '';
 
@@ -185,7 +191,8 @@
 							duration: track.duration,
 							videoURL: track.videoURL
 						}))
-					}
+					},
+					audioQuality: audioQuality
 				})
 			});
 
@@ -362,12 +369,36 @@
 						></textarea>
 					{/if}
 					<div class="flex items-center justify-center gap-4">
-						{#if !editingAlbum}
-							<p class="text-md font-bold">{album.name} - {album.artist}</p>
-						{:else}
-							<input bind:value={album.name} placeholder="Album Name" class="border-2 py-1 pl-2" />
-							<input bind:value={album.artist} placeholder="Artist" class="border-2 py-1 pl-2" />
-						{/if}
+						<div class="flex flex-col items-center justify-center gap-2">
+							<div class="flex items-center justify-center gap-2">
+								<label for="album-name"><b>Album:</b></label>
+
+								{#if !editingAlbum}
+									<p>{album.name}</p>
+								{:else}
+									<input
+										bind:value={album.name}
+										name="album-name"
+										placeholder="Album Name"
+										class="border-2 py-1 pl-2"
+									/>
+								{/if}
+							</div>
+							<div class="flex items-center justify-center gap-2">
+								<label for="album-artist"><b>Artist:</b></label>
+
+								{#if !editingAlbum}
+									<p>{album.artist}</p>
+								{:else}
+									<input
+										bind:value={album.artist}
+										name="album-artist"
+										placeholder="Artist"
+										class="border-2 py-1 pl-2"
+									/>
+								{/if}
+							</div>
+						</div>
 						{#if !loading && !downloadProgress.downloading}
 							<button
 								class="flex h-8 w-8 items-center justify-center"
@@ -424,6 +455,21 @@
 	{/if}
 
 	{#if isNameSearch && album && album.tracklist.length == tracklistLength}
+		<div class="flex items-center justify-center gap-2">
+			<label for="audio-quality" class="font-bold">Audio Quality:</label>
+			<input
+				bind:value={audioQuality}
+				name="audio-quality"
+				placeholder="Audo Quality"
+				class="w-12 self-center border-2 py-1 pl-2"
+				type="number"
+				min="1"
+				max="10"
+			/>
+		</div>
+		<p class="self-center">
+			<i>NOTE: The highest quality (10) will be roughly 3x the memory of the lowest quality (1).</i>
+		</p>
 		<button
 			onclick={() => downloadByNames()}
 			disabled={downloadProgress.downloading}

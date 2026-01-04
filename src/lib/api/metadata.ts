@@ -63,7 +63,7 @@ export async function fetchCoverImage(url: string): Promise<Buffer | null> {
         // Get image at cover's URL and resize it into smaller scale and compress to take up minimal storage
         const image = await Jimp.read(url);
         image.resize({ w: 500, h: 500 });
-        return await image.getBuffer("image/jpeg", { quality: 75 });;
+        return await image.getBuffer("image/jpeg");;
     } catch (error) {
         console.error('Failed to fetch cover image with ERROR:', error);
         return null;
