@@ -111,7 +111,7 @@ async function downloadAlbum(downloadID: string, album: Album) {
             });
 
             const cleanTitle = track.name.replace(/[<>:"/\\|?*]/g, '');
-            const filename = `${String(track.number)} - ${cleanTitle}.mp3`;
+            const filename = `${String(track.number).padStart(2, '0')} ${cleanTitle}.mp3`;
             const filepath = path.join(tempDir, filename);
 
             // 

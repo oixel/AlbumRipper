@@ -30,18 +30,9 @@
 			const dataSearchURL = `https://musicbrainz.org/ws/2/release/${id}?inc=recordings&fmt=json`;
 			const data = await fetch(dataSearchURL).then((result) => result.json());
 
-			console.log('ID:', id);
-
 			if (data.media && data.media.length > 0) {
 				let coverURL = `https://coverartarchive.org/release/${id}/front`;
 				const coverResponse = await fetch(coverURL);
-
-				// Overwrite cover URL with unknown album cover image
-				if (!coverResponse.ok) {
-					console.log('No album cover found...');
-				} else {
-					console.log('Cover URL:', coverURL);
-				}
 
 				album = new Album(idSearchData.releases[0].title, artistName, coverURL);
 
