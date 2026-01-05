@@ -391,7 +391,7 @@
 						></textarea>
 					{/if}
 					<div class="flex items-center justify-center gap-4">
-						<div class="flex flex-col items-center justify-center gap-2">
+						<div class="flex flex-col items-center justify-center gap-1">
 							<div class="flex items-center justify-center gap-2">
 								<label for="album-name"><b>Album:</b></label>
 
