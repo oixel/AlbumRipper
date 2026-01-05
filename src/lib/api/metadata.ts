@@ -88,7 +88,7 @@ export async function writeTrackMetadata(filePath: string, track: Track, album: 
         tags.image = {
             mime: 'image/jpeg',
             type: {
-                id: 0,
+                id: 3,
                 name: 'front cover'
             },
             description: `Album Cover`,
