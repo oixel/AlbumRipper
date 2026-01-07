@@ -27,7 +27,7 @@
 	} = $props();
 
 	//
-	async function getMusicBrainzMetadata() {
+	async function getMusicBrainzMetadata(releasesIndex: number = 0) {
 		// Wipe currently stored album
 		album = null;
 
@@ -35,9 +35,12 @@
 		const idSearchURL = `https://musicbrainz.org/ws/2/release/?query=artist:"${artistName}" AND release:"${albumName}"&fmt=json`;
 		const idSearchData = await fetch(idSearchURL).then((result) => result.json());
 
+		// If no found album has a proper tracklist return no album
+		if (releasesIndex >= idSearchData.releases.length) return null;
+
 		if (idSearchData.releases && idSearchData.releases.length > 0) {
 			// Initialize desired album to best search result
-			let correctAlbum = idSearchData.releases[0];
+			let correctAlbum = idSearchData.releases[releasesIndex];
 
 			// If deluxe album is desired, find deluxe version using the releases disambiguation tag
 			if (isDeluxe) {
@@ -60,6 +63,11 @@
 				goToAlbumView();
 
 				const tracklist = data.media[0].tracks;
+
+				if (!tracklist || !tracklist.length) {
+					return getMusicBrainzMetadata(releasesIndex + 1);
+				}
+
 				expectedTracklistLength = tracklist.length;
 
 				// Loop through all tracks in the tracklist and fille the album object with data

@@ -77,6 +77,7 @@ export async function writeTrackMetadata(filePath: string, track: Track, album: 
 
     // Only apply track attributes that have been given
     if (track.name) tags.title = track.name;
+    if (album.name) tags.album = album.name;
     if (album.artist) tags.performerInfo = album.artist;
     if (track.artists.length) tags.artist = track.artists.join('; ');
     if (album.year) tags.year = album.year;

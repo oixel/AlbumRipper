@@ -109,6 +109,16 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
         const albumName = album.name ?? 'Unnamed Album';
         const albumArtist = album.artist ?? 'Unknown Artist';
 
+        // Ensure that the .ZIP file and internal folder have legal names
+        const cleanDirectoryName = `${albumName} - ${albumArtist}`
+            .replace(/[<>:"/\\|?*]/g, '')  // Remove unsafe directory chars
+            .replace(/[\u2018\u2019]/g, "'")  // Replacec smart single quotes with regular
+            .replace(/[\u201C\u201D]/g, '"')  // Replace smart double quotes with regular
+            .replace(/[\u2013\u2014]/g, '-')  // Replace em/en dashes with hyphen
+            .replace(/[\u2026]/g, '...')  // Replace ellipsis with three periods
+            .replace(/[^\x20-\x7F]/g, '')  // Remove all extra non-ASCII chars
+            .trim();  // Remove any leading/trailing white space
+
         await new Promise<void>((resolve, reject) => {
             const output = createWriteStream(zipPath);
             const archive = archiver('zip', { zlib: { level: 9 } });
@@ -121,7 +131,7 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
 
             archive.pipe(output);
 
-            archive.directory(tempDir, `${albumName} - ${albumArtist}`);
+            archive.directory(tempDir, cleanDirectoryName);
 
             archive.finalize();
         });
@@ -130,16 +140,13 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
         await rm(tempDir, { recursive: true, force: true });
 
         // 
-        const zipFilename = `${albumName} - ${albumArtist}.zip`.replace(/[<>:"/\\|?*]/g, '');
-
-        // 
         downloads.set(downloadID, {
             downloadCount: downloadCount,
             total: album.tracklist.length,
             status: 'Ready for download!',
             done: true,
             zipPath: zipPath,
-            filename: zipFilename
+            filename: cleanDirectoryName + '.zip'
         });
     } catch (error) {
         console.error('Download ERROR:', error);
@@ -212,6 +219,7 @@ export const GET: RequestHandler = async ({ url }) => {
                 }
             })
         } catch (err) {
+            console.error(`Failed to download file. ERROR: ${err}`);
             return json({ error: `Failed to download file. ERROR: ${err}` }, { status: 500 });
         }
     }
