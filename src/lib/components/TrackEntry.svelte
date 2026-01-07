@@ -11,7 +11,7 @@
 
 	let editing = $state(false);
 
-	let artistsString = $derived(track.artists.join(','));
+	let artistsString = $derived(track.artists.join('; '));
 </script>
 
 <div class="flex gap-2">
@@ -20,8 +20,8 @@
 			class="flex h-8 w-8 items-center justify-center"
 			onclick={() => {
 				// Update artists array in Track object if it has been changed
-				if (editing && artistsString != track.artists.join(',')) {
-					track.artists = artistsString.replaceAll(', ', ',').split(',');
+				if (editing && artistsString != track.artists.join('; ')) {
+					track.artists = artistsString.replaceAll('; ', ';').split(';');
 				}
 
 				//
@@ -36,16 +36,20 @@
 		<p class="flex-1">
 			<b>Track #{track.number}</b> - {track.name}
 			<b>Artist{track.artists.length > 1 ? 's' : ''}:</b>
-			{track.artists.join(', ')}
+			{track.artists.join('; ')}
 		</p>
-		<a
-			class="flex-nowrap"
-			href={track.videoURL}
-			aria-label={`YouTube Video URL for track named ${track.name}`}
-			target="_blank"
-		>
-			[ Video ]
-		</a>
+		{#if track.videoURL}
+			<a
+				class="flex-nowrap"
+				href={track.videoURL}
+				aria-label={`YouTube Video URL for track named ${track.name}`}
+				target="_blank"
+			>
+				[ Video ]
+			</a>
+		{:else}
+			<p class="text-red-500 select-none">[ Video Missing ]</p>
+		{/if}
 	{:else if !downloading}
 		<button
 			class="flex h-8 w-8 items-center justify-center"
@@ -70,12 +74,12 @@
 		/>
 		<input
 			bind:value={artistsString}
-			placeholder="Track Name"
+			placeholder="Track Artist(s)"
 			class="w-full max-w-md self-center border-2 py-1 pl-2"
 		/>
 		<input
 			bind:value={track.videoURL}
-			placeholder="Track YouTube URL"
+			placeholder="YouTube URL"
 			class="w-full max-w-md self-center border-2 py-1 pl-2"
 			type="url"
 		/>

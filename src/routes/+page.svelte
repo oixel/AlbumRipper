@@ -5,14 +5,15 @@
 	import SearchAlbumForm from '$lib/components/SearchAlbumForm.svelte';
 
 	// Tracks which method is used to create Album object
-	let pageState: '' | 'search' | 'blank' | 'import' | 'album' = $state('');
+	let prevPageState: '' | 'search' | 'import' | 'album' = $state('');
+	let pageState: '' | 'search' | 'import' | 'album' = $state('');
 
 	// Tracks the state of current operation
 	let loading: boolean = $state(false);
 	let error = $state(false);
 	let message = $state('');
 
-	//
+	// Tracks quality of audio downloaded from YouTube videos (1-10 where 10 is highest quality)
 	let audioQuality = $state(5);
 
 	// Bindable values from input fields
@@ -116,18 +117,27 @@
 
 						// If ZIP file was grabbed successfully, download it in browser!
 						if (zipFileResponse.ok) {
+							// Prevent downloading empty albums (no valid videos)
+							if (downloadProgress.downloadCount == 0) {
+								error = true;
+								message = 'No files downloaded. Check video URLs.';
+
+								downloadProgress.downloading = false;
+								return;
+							}
+
 							// Create an invisible link with the content and force download it
 							const blob = await zipFileResponse.blob();
 							const downloadUrl = window.URL.createObjectURL(blob);
 							const a = document.createElement('a');
 							a.href = downloadUrl;
-							a.download = `${album.name} - ${album.artist}.zip`;
+							a.download = `${album.name ?? 'Unknown Album'} - ${album.artist ?? 'Unknown Artist'}.zip`;
 							document.body.appendChild(a);
 							a.click();
 							window.URL.revokeObjectURL(downloadUrl);
 							document.body.removeChild(a);
 
-							message = 'Album download successful!';
+							message = `Album download successful - (${downloadProgress.downloadCount} / ${album.tracklist.length}) tracks downloaded!`;
 						} else {
 							error = true;
 							message = 'Failed to download file.';
@@ -164,8 +174,17 @@
 		onclick={() => {
 			album = null;
 
-			if (albumName && artistName) pageState = 'search';
-			else pageState = '';
+			// Reset error state
+			error = false;
+			message = '';
+
+			// Returns user to Search or Import pages from AlbumView page if they were previously there
+			if (pageState == 'album' && prevPageState) pageState = prevPageState;
+			else {
+				// Otherwise, simply return to start option screen
+				pageState = '';
+				prevPageState = '';
+			}
 		}}>← Go Back</button
 	>
 {/if}
@@ -179,6 +198,7 @@
 				class="w-1/4"
 				onclick={() => {
 					pageState = 'search';
+					prevPageState = 'search';
 				}}
 			>
 				Search for Album
@@ -186,7 +206,8 @@
 			<button
 				class="w-1/4"
 				onclick={() => {
-					pageState = 'blank';
+					album = new Album();
+					pageState = 'album';
 				}}
 			>
 				Create BLANK Album
@@ -195,6 +216,7 @@
 				class="w-1/4"
 				onclick={() => {
 					pageState = 'import';
+					prevPageState = 'import';
 				}}
 			>
 				Import Album (.json)
@@ -225,7 +247,7 @@
 		</p>
 	{/if}
 
-	{#if album && expectedTracklistLength && album.tracklist.length == expectedTracklistLength}
+	{#if album && album.tracklist.length && ((prevPageState == 'search' && !loading) || prevPageState != 'search')}
 		<div class="flex items-center justify-center gap-2">
 			<div
 				class="group relative inline-block cursor-pointer border-b-2 border-dotted font-bold select-none"

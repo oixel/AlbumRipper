@@ -13,62 +13,6 @@ import archiver from 'archiver';
 import { json } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
 
-// async function downloadMP3(url: string) {
-//     // Store audio data into a temporary file so it can be return to user as a data buffer
-//     const tempFile = path.join(os.tmpdir(), `${randomUUID()}.mp3`);
-
-//     try {
-//         // Download audio from video at given URL
-//         await youtubedl(url, {
-//             extractAudio: true,
-//             audioFormat: 'mp3',
-//             audioQuality: 0,
-//             output: tempFile
-//         });
-
-//         // Grab metadata from the YouTube video
-//         const metadata = await getMetadata(url);
-
-//         // Write it to the file properly grabbed
-//         if (metadata) await writeMetadata(metadata, tempFile);
-//         else console.error('Failed to get metadata on URL:', url);
-
-//         // Convert audio data from youtubedl into a data buffer and delete temporary file
-//         const buffer = await readFile(tempFile);
-//         await unlink(tempFile);
-
-//         // Determine filename based on
-//         console.log("Track number is", metadata?.trackNumber);
-//         const filename = metadata ? `${metadata.trackNumber ? metadata.trackNumber.toString() + ' - ' : ''}${metadata.track}.mp3"` : "song.mp3";
-
-//         // Return the new data buffer to the requesting page to download its content
-//         return new Response(buffer, {
-//             headers: {
-//                 'Content-Type': 'audio/mpeg',
-//                 'Content-Disposition': `attachment; filename="${filename}`,
-//                 'File-Name': filename,
-//                 'Content-Length': buffer.length.toString()
-//             }
-//         });
-//     } catch (error) {
-//         // Delete tempFile in case of an error
-//         try {
-//             await unlink(tempFile);
-//         } catch {
-//             console.log("ERROR while unlinking temporary file.")
-//         }
-
-//         const message = error instanceof Error ? error.message : 'Unknown ERROR';
-
-//         // Return ERROR data with message
-//         return new Response(JSON.stringify({ error: message }),
-//             {
-//                 status: 500,
-//                 headers: { 'Content-Type': 'application/json' }
-//             });
-//     }
-// }
-
 // 
 const downloads = new Map<string, {
     downloadCount: number,
@@ -102,19 +46,34 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
 
         // 
         for (const track of album.tracklist) {
+            // Use 'Unnamed Track' on UI side if no track name was given
+            const trackName = track.name ?? 'Unnamed Track';
+
             downloads.set(downloadID, {
                 downloadCount: downloadCount,
                 total: album.tracklist.length,
-                status: `Downloading: ${track.name}`,
-                currentTrack: track.name,
+                status: `Downloading: ${trackName}`,
+                currentTrack: trackName,
                 done: false
             });
 
-            const cleanTitle = track.name.replace(/[<>:"/\\|?*]/g, '');
+            const cleanTitle = trackName.replace(/[<>:"/\\|?*]/g, '');
             const filename = `${String(track.number).padStart(2, '0')} ${cleanTitle}.mp3`;
             const filepath = path.join(tempDir, filename);
 
-            // 
+            // Skip track if no video is provided for it
+            if (!track.videoURL) {
+                downloads.set(downloadID, {
+                    downloadCount: downloadCount,
+                    total: album.tracklist.length,
+                    status: `Skipping ${trackName} - No Video URL Provided.`,
+                    currentTrack: trackName,
+                    done: false
+                });
+
+                continue;
+            }
+
             await youtubedl(track.videoURL, {
                 extractAudio: true,
                 audioFormat: 'mp3',
@@ -133,8 +92,8 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
             downloads.set(downloadID, {
                 downloadCount: downloadCount,
                 total: album.tracklist.length,
-                status: `Completed: ${track.name}!`,
-                currentTrack: track.name,
+                status: `Downloaded: ${trackName}!`,
+                currentTrack: trackName,
                 done: false
             });
         }
@@ -146,6 +105,9 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
             status: 'Creating ZIP file...',
             done: false
         });
+
+        const albumName = album.name ?? 'Unnamed Album';
+        const albumArtist = album.artist ?? 'Unknown Artist';
 
         await new Promise<void>((resolve, reject) => {
             const output = createWriteStream(zipPath);
@@ -159,7 +121,7 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
 
             archive.pipe(output);
 
-            archive.directory(tempDir, `${album.name} - ${album.artist}`);
+            archive.directory(tempDir, `${albumName} - ${albumArtist}`);
 
             archive.finalize();
         });
@@ -168,7 +130,7 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
         await rm(tempDir, { recursive: true, force: true });
 
         // 
-        const zipFilename = `${album.name} - ${album.artist}.zip`.replace(/[<>:"/\\|?*]/g, '');
+        const zipFilename = `${albumName} - ${albumArtist}.zip`.replace(/[<>:"/\\|?*]/g, '');
 
         // 
         downloads.set(downloadID, {
@@ -199,10 +161,6 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
 }
 
 export const POST: RequestHandler = async ({ request }) => {
-    // OG download from YouTube approach
-    // const { url } = await request.json() as { url: string };
-    // return await downloadMP3(url);
-
     try {
         const { album, audioQuality } = await request.json() as { album: Album, audioQuality: number };
 

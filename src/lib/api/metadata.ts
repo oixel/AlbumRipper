@@ -73,15 +73,15 @@ export async function fetchCoverImage(url: string): Promise<Buffer | null> {
 // Takes Track and Album objects and writes the metadata into the file at the given path
 export async function writeTrackMetadata(filePath: string, track: Track, album: Album, cover: Buffer | null) {
     // Convert metadata to NodeID3's tags
-    const tags: Record<string, unknown> = {
-        title: track.name,
-        performerInfo: album.artist,
-        artist: track.artists.join(','),
-        album: album.name,
-        year: album.year,
-        trackNumber: track.number.toString(),
-        length: track.duration.toString()
-    }
+    const tags: Record<string, unknown> = {}
+
+    // Only apply track attributes that have been given
+    if (track.name) tags.title = track.name;
+    if (album.artist) tags.performerInfo = album.artist;
+    if (track.artists.length) tags.artist = track.artists.join('; ');
+    if (album.year) tags.year = album.year;
+    if (track.number) tags.trackNumber = track.number.toString();
+    if (track.duration) tags.length = track.duration.toString();
 
     // Only apply cover image data to tags if image buffer was properly fetched
     if (cover) {

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Album } from '$lib/classes/Album.svelte';
 	import type { DownloadProgress } from '$lib/classes/DownloadProgress.svelte';
+	import { Track } from '$lib/classes/Track.svelte';
 	import TrackEntry from '$lib/components/TrackEntry.svelte';
 
 	let {
@@ -103,6 +104,13 @@
 						Search for songs in {album.name} ({album.tracklist.length}/{expectedTracklistLength})...
 					</i>
 				</p>
+			{:else}
+				<button
+					class="bg-green-300"
+					onclick={() => {
+						album.tracklist.push(new Track(album.tracklist.length + 1, '', [], 0));
+					}}>+ Add Track</button
+				>
 			{/if}
 		</div>
 	</div>
