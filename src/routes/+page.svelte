@@ -4,13 +4,21 @@
 	import AlbumView from '$lib/components/AlbumView.svelte';
 	import SearchAlbumForm from '$lib/components/SearchAlbumForm.svelte';
 
+	// Tracks which method is used to create Album object
+	let pageState: '' | 'search' | 'blank' | 'import' | 'album' = $state('');
+
 	// Tracks the state of current operation
-	let loading = $state(false);
+	let loading: boolean = $state(false);
 	let error = $state(false);
 	let message = $state('');
 
 	//
 	let audioQuality = $state(5);
+
+	// Bindable values from input fields
+	let artistName = $state('');
+	let albumName = $state('');
+	let isDeluxe = $state(false);
 
 	// Album attributes
 	let album: Album | null = $state(null);
@@ -149,18 +157,65 @@
 	<title>Album Ripper</title>
 </svelte:head>
 
-<form class="flex flex-col gap-5">
-	<h1 class="text-center text-4xl select-none">Album Ripper</h1>
-	<SearchAlbumForm
-		bind:album
-		bind:loading
-		bind:expectedTracklistLength
-		bind:editingAlbum
-		bind:error
-		bind:message
-	/>
+{#if pageState}
+	<button
+		type="button"
+		class="absolute self-start"
+		onclick={() => {
+			album = null;
 
-	{#if album}
+			if (albumName && artistName) pageState = 'search';
+			else pageState = '';
+		}}>← Go Back</button
+	>
+{/if}
+
+<form class="flex flex-col items-center gap-5">
+	<h1 class="text-center text-4xl select-none">Album Ripper</h1>
+
+	{#if !pageState}
+		<div class="flex w-full flex-col items-center gap-2">
+			<button
+				class="w-1/4"
+				onclick={() => {
+					pageState = 'search';
+				}}
+			>
+				Search for Album
+			</button>
+			<button
+				class="w-1/4"
+				onclick={() => {
+					pageState = 'blank';
+				}}
+			>
+				Create BLANK Album
+			</button>
+			<button
+				class="w-1/4"
+				onclick={() => {
+					pageState = 'import';
+				}}
+			>
+				Import Album (.json)
+			</button>
+		</div>
+	{:else if pageState == 'search'}
+		<SearchAlbumForm
+			bind:albumName
+			bind:artistName
+			bind:isDeluxe
+			bind:album
+			bind:loading
+			bind:expectedTracklistLength
+			bind:editingAlbum
+			bind:error
+			bind:message
+			goToAlbumView={() => {
+				pageState = 'album';
+			}}
+		/>
+	{:else if pageState == 'album' && album}
 		<AlbumView {album} {expectedTracklistLength} {editingAlbum} {loading} {downloadProgress} />
 	{/if}
 

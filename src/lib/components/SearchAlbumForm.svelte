@@ -2,25 +2,28 @@
 	import { Album } from '$lib/classes/Album.svelte';
 	import { Track } from '$lib/classes/Track.svelte';
 
-	// Bindable values from input fields
-	let artistName = $state('');
-	let albumName = $state('');
-	let isDeluxe = $state(false);
-
 	let {
+		albumName = $bindable(),
+		artistName = $bindable(),
+		isDeluxe = $bindable(),
 		album = $bindable(),
 		loading = $bindable(),
 		expectedTracklistLength = $bindable(),
 		editingAlbum = $bindable(),
 		error = $bindable(),
-		message = $bindable()
+		message = $bindable(),
+		goToAlbumView
 	}: {
+		albumName: string;
+		artistName: string;
+		isDeluxe: boolean;
 		album: Album | null;
 		loading: boolean;
 		expectedTracklistLength: number;
 		editingAlbum: boolean;
 		error: boolean;
 		message: string;
+		goToAlbumView: Function;
 	} = $props();
 
 	//
@@ -54,7 +57,8 @@
 				let coverURL = `https://coverartarchive.org/release/${id}/front`;
 
 				album = new Album(correctAlbum.title, artistName, data.date.substr(0, 4), coverURL);
-				console.log('Created new album');
+				goToAlbumView();
+
 				const tracklist = data.media[0].tracks;
 				expectedTracklistLength = tracklist.length;
 
@@ -86,6 +90,9 @@
 					if (data && data.video) {
 						newTrack.videoURL = data.video.url;
 					}
+
+					// Prevent error if 'Go Back' is pressed while searching for tracks by returning out before appending
+					if (!album) return;
 
 					// Append this new song to the end of the album's tracklist array
 					album.tracklist.push(newTrack);
@@ -158,7 +165,6 @@
 
 <button
 	onclick={() => {
-		console.log('Searching for album with name:', albumName);
 		search();
 		editingAlbum = false;
 	}}
