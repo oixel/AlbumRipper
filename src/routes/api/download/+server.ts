@@ -47,7 +47,7 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
         // 
         for (const track of album.tracklist) {
             // Use 'Unnamed Track' on UI side if no track name was given
-            const trackName = track.name ?? 'Unnamed Track';
+            const trackName = track.name.length ? track.name : 'Unnamed Track';
 
             downloads.set(downloadID, {
                 downloadCount: downloadCount,
@@ -106,8 +106,8 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
             done: false
         });
 
-        const albumName = album.name ?? 'Unnamed Album';
-        const albumArtist = album.artist ?? 'Unknown Artist';
+        const albumName = album.name.length ? album.name : 'Unnamed Album';
+        const albumArtist = album.artist.length ? album.artist : 'Unknown Artist';
 
         // Ensure that the .ZIP file and internal folder have legal names
         const cleanDirectoryName = `${albumName} - ${albumArtist}`

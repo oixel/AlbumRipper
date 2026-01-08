@@ -2,6 +2,7 @@
 	import { Album } from '$lib/classes/Album.svelte';
 	import { DownloadProgress } from '$lib/classes/DownloadProgress.svelte';
 	import AlbumView from '$lib/components/AlbumView.svelte';
+	import ImportAlbumPage from '$lib/components/ImportAlbumPage.svelte';
 	import SearchAlbumForm from '$lib/components/SearchAlbumForm.svelte';
 
 	// Tracks which method is used to create Album object
@@ -27,6 +28,13 @@
 	let editingAlbum = $state(false);
 
 	let downloadProgress = new DownloadProgress();
+
+	//
+	function getFilename() {
+		const albumName = album?.name.length ? album.name : 'Unknown Album';
+		const artistName = album?.artist.length ? album.artist : 'Unknown Artist';
+		return `${albumName} - ${artistName}`;
+	}
 
 	//
 	async function downloadAlbum() {
@@ -131,7 +139,7 @@
 							const downloadUrl = window.URL.createObjectURL(blob);
 							const a = document.createElement('a');
 							a.href = downloadUrl;
-							a.download = `${album.name ?? 'Unknown Album'} - ${album.artist ?? 'Unknown Artist'}.zip`;
+							a.download = `${getFilename()}.zip`;
 							document.body.appendChild(a);
 							a.click();
 							window.URL.revokeObjectURL(downloadUrl);
@@ -160,6 +168,37 @@
 			downloadProgress.downloading = false;
 			console.error('Download ERROR:', err);
 		}
+	}
+
+	//
+	async function exportAlbum() {
+		if (!album) return;
+
+		// Convert album object into a convertable JavaScript value
+		const exportedAlbum = {
+			name: album.name,
+			artist: album.artist,
+			year: album.year,
+			coverURL: album.coverURL,
+			tracklist: album.tracklist.map((track) => ({
+				name: track.name,
+				artists: track.artists,
+				number: track.number,
+				duration: track.duration,
+				videoURL: track.videoURL
+			}))
+		};
+
+		// Convert converted object into JSON format
+		const albumJSON = JSON.stringify(exportedAlbum, null, 2);
+
+		// Download JSON file from browser
+		const a = document.createElement('a');
+		a.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(albumJSON);
+		a.download = `${getFilename()}.json`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
 	}
 </script>
 
@@ -237,6 +276,8 @@
 				pageState = 'album';
 			}}
 		/>
+	{:else if pageState == 'import'}
+		<ImportAlbumPage />
 	{:else if pageState == 'album' && album}
 		<AlbumView {album} {expectedTracklistLength} {editingAlbum} {loading} {downloadProgress} />
 	{/if}
@@ -267,19 +308,27 @@
 				max="10"
 			/>
 		</div>
-		<button
-			onclick={() => downloadAlbum()}
-			disabled={downloadProgress.downloading}
-			class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
-		>
-			{downloadProgress.downloading ? 'Downloading...' : 'Download'}
-		</button>
+		<div>
+			<button
+				onclick={() => downloadAlbum()}
+				disabled={downloadProgress.downloading}
+				class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
+			>
+				{downloadProgress.downloading ? 'Downloading...' : 'Download'}
+			</button>
+			<button
+				onclick={() => exportAlbum()}
+				class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
+			>
+				Export
+			</button>
+		</div>
 	{/if}
 
 	{#if downloadProgress.downloading}
 		{#if downloadProgress.total != 0}
 			<p class="self-center">
-				<b>Downloading Track:</b>
+				<b>Download Progress:</b>
 				{downloadProgress.downloadCount} / {downloadProgress.total}
 			</p>
 		{/if}
