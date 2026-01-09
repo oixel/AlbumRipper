@@ -7,11 +7,12 @@ export class Album {
     coverURL: string = $state('');
     tracklist: Array<Track> = $state([]);
 
-    constructor(name: string = '', artist: string = '', year: string = '', coverURL: string = '') {
+    constructor(name: string = '', artist: string = '', year: string = '', coverURL: string = '', tracklist: Array<Track> = $state([])) {
         this.name = name;
         this.artist = artist;
         this.year = year;
         this.coverURL = coverURL;
+        this.tracklist = tracklist;
     }
 
     // Takes in a track and filters it out of the tracklist

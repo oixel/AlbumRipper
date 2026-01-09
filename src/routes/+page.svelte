@@ -277,7 +277,14 @@
 			}}
 		/>
 	{:else if pageState == 'import'}
-		<ImportAlbumPage />
+		<ImportAlbumPage
+			bind:album
+			bind:error
+			bind:message
+			goToAlbumView={() => {
+				pageState = 'album';
+			}}
+		/>
 	{:else if pageState == 'album' && album}
 		<AlbumView {album} {expectedTracklistLength} {editingAlbum} {loading} {downloadProgress} />
 	{/if}
