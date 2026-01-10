@@ -7,7 +7,7 @@ export class Album {
     coverURL: string = $state('');
     tracklist: Array<Track> = $state([]);
 
-    constructor(name: string = '', artist: string = '', year: string = '', coverURL: string = '', tracklist: Array<Track> = $state([])) {
+    constructor(name: string = '', artist: string = '', year: string = '', coverURL: string = '', tracklist: Array<Track> = []) {
         this.name = name;
         this.artist = artist;
         this.year = year;
