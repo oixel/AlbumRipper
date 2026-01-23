@@ -58,7 +58,7 @@
 
 			if (data.media && data.media.length > 0) {
 				const foundAlbumArtists = correctAlbum['artist-credit']
-					.map((artist) => artist.name)
+					.map((artist: { name: any }) => artist.name)
 					.join('; ');
 				let coverURL = `https://coverartarchive.org/release/${id}/front`;
 
