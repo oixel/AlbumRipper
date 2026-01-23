@@ -32,7 +32,7 @@
 		album = null;
 
 		// Find release ID for the most relevant track with given artist and album names
-		const idSearchURL = `https://musicbrainz.org/ws/2/release/?query=artist:"${artistName}" AND release:"${albumName}"&fmt=json`;
+		const idSearchURL = `https://musicbrainz.org/ws/2/release/?query=artist:"${artistName}"${albumName ? ` AND release:"${albumName}"&fmt=json` : ''}`;
 		const idSearchData = await fetch(idSearchURL).then((result) => result.json());
 
 		// If no found album has a proper tracklist return no album
@@ -57,9 +57,10 @@
 			const data = await fetch(dataSearchURL).then((result) => result.json());
 
 			if (data.media && data.media.length > 0) {
+				const foundArtistName = correctAlbum['artist-credit'][0].name;
 				let coverURL = `https://coverartarchive.org/release/${id}/front`;
 
-				album = new Album(correctAlbum.title, artistName, data.date.substr(0, 4), coverURL);
+				album = new Album(correctAlbum.title, foundArtistName, data.date.substr(0, 4), coverURL);
 				goToAlbumView();
 
 				const tracklist = data.media[0].tracks;
@@ -113,7 +114,7 @@
 			}
 		} else {
 			error = true;
-			message = `Album "${albumName}" by "${artistName}" not found. Please try again!`;
+			message = `Album "${albumName}"${artistName ? ` by "${artistName}"` : ''} not found. Please try again!`;
 		}
 
 		//
@@ -176,7 +177,7 @@
 		search();
 		editingAlbum = false;
 	}}
-	disabled={loading || !artistName || !albumName}
+	disabled={loading || !albumName}
 	type="submit"
 	class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
 >
