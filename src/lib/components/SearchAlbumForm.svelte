@@ -57,10 +57,12 @@
 			const data = await fetch(dataSearchURL).then((result) => result.json());
 
 			if (data.media && data.media.length > 0) {
-				const foundArtistName = correctAlbum['artist-credit'][0].name;
+				const foundAlbumArtists = correctAlbum['artist-credit']
+					.map((artist) => artist.name)
+					.join('; ');
 				let coverURL = `https://coverartarchive.org/release/${id}/front`;
 
-				album = new Album(correctAlbum.title, foundArtistName, data.date.substr(0, 4), coverURL);
+				album = new Album(correctAlbum.title, foundAlbumArtists, data.date.substr(0, 4), coverURL);
 				goToAlbumView();
 
 				const tracklist = data.media[0].tracks;
