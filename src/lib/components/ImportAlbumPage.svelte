@@ -48,5 +48,11 @@
 	});
 </script>
 
-<label for="album-input">Import album .JSON file:</label>
-<input name="album-input" type="file" accept="application/json" bind:files />
+<label for="album-input" class="underline">Import album .JSON file:</label>
+<input
+	name="album-input"
+	type="file"
+	accept="application/json"
+	bind:files
+	class="w-1/3 bg-red-200 text-center file:mr-5 file:w-1/2 file:rounded-md file:border-2 file:px-1"
+/>
