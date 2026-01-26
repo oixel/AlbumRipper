@@ -77,7 +77,7 @@
 				for (let track of tracklist) {
 					// Find all artists that worked on this track and store their names
 					const artistsData = await fetch(
-						`http://musicbrainz.org/ws/2/recording/${track.recording.id}?inc=releases+artists&fmt=json`
+						`https://musicbrainz.org/ws/2/recording/${track.recording.id}?inc=releases+artists&fmt=json`
 					).then((result) => result.json());
 					const artists: Array<string> = artistsData['artist-credit'].map(
 						(artist: any) => artist.name
