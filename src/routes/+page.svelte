@@ -290,7 +290,7 @@
 	{/if}
 
 	{#if message}
-		<p class="{error ? 'text-red-500' : 'text-green-500'} self-center italic select-none">
+		<p class="{error ? 'text-red-500' : 'text-green-500'} self-center italic">
 			{message}
 		</p>
 	{/if}
