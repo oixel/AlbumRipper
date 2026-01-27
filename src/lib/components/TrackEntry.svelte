@@ -24,7 +24,6 @@
 					track.artists = artistsString.replaceAll('; ', ';').split(';');
 				}
 
-				//
 				editing = !editing;
 			}}
 		>

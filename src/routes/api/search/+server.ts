@@ -1,6 +1,7 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
 import * as yt from 'youtube-search-without-api-key';
 
+// Return most relevant YouTube video from the request's text query
 export const GET: RequestHandler = async ({ url }) => {
     try {
         const query = url.searchParams.get('q');

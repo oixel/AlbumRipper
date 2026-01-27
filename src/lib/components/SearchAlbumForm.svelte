@@ -26,7 +26,7 @@
 		goToAlbumView: Function;
 	} = $props();
 
-	//
+	// Query MusicBrainz's data base for the Album's metadata (album name, artist, cover art, and tracklist)
 	async function getMusicBrainzMetadata(releasesIndex: number = 0) {
 		// Wipe currently stored album
 		album = null;
@@ -119,11 +119,9 @@
 			message = `Album "${albumName}"${artistName ? ` by "${artistName}"` : ''} not found. Please try again!`;
 		}
 
-		//
 		return null;
 	}
 
-	//
 	async function search() {
 		error = false;
 		message = '';

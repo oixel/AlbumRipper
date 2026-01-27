@@ -29,14 +29,14 @@
 
 	let downloadProgress = new DownloadProgress();
 
-	//
+	// Format filename based on available Album metadata
 	function getFilename() {
 		const albumName = album?.name.length ? album.name : 'Unknown Album';
 		const artistName = album?.artist.length ? album.artist : 'Unknown Artist';
 		return `${albumName} - ${artistName}`;
 	}
 
-	//
+	// Takes current Album and loops through it, downloading each track individually
 	async function downloadAlbum() {
 		if (!album || album.tracklist.length == 0) return;
 
@@ -170,7 +170,7 @@
 		}
 	}
 
-	//
+	// Takes current Album's data and converts it to an importable .JSON file
 	async function exportAlbum() {
 		if (!album) return;
 

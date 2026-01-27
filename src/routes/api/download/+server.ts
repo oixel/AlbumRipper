@@ -1,6 +1,3 @@
-// Potentnial package for searching for youtube video with keywords: https://www.npmjs.com/package/youtube-search-api
-// Potential package for writing metadata: https://www.npmjs.com/package/ffmetadata
-
 import youtubedl from 'youtube-dl-exec';
 import type { RequestHandler } from './$types';
 import { unlink, readFile, mkdir, rm } from 'fs/promises';
@@ -13,7 +10,7 @@ import archiver from 'archiver';
 import { json } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
 
-// 
+// Tracks the active download progress
 const downloads = new Map<string, {
     downloadCount: number,
     total: number,
@@ -30,7 +27,7 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
     const zipPath = path.join(os.tmpdir(), `album-${downloadID}.zip`);
 
     try {
-        // 
+        // Update download state to indicate initialization
         downloads.set(downloadID, {
             downloadCount: 0,
             total: album.tracklist.length,
@@ -44,7 +41,7 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
 
         const cover: Buffer | null = await fetchCoverImage(album.coverURL);
 
-        // 
+        // Download every track in the Album's tracklist
         for (const track of album.tracklist) {
             // Use 'Unnamed Track' on UI side if no track name was given
             const trackName = track.name.length ? track.name : 'Unnamed Track';
@@ -82,13 +79,12 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
                 embedThumbnail: false
             });
 
-            // 
+            // Write the track's metadata to the file contents
             writeTrackMetadata(filepath, track, album, cover);
 
-            // 
             downloadCount++;
 
-            // 
+            // Update status to reflect successful track download
             downloads.set(downloadID, {
                 downloadCount: downloadCount,
                 total: album.tracklist.length,
@@ -136,20 +132,20 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
             archive.finalize();
         });
 
-        // 
+        // Clear temporary directory as it is no longer needed after zipping
         await rm(tempDir, { recursive: true, force: true });
 
-        // 
+        // Update status to reflect completed Album download
         downloads.set(downloadID, {
             downloadCount: downloadCount,
             total: album.tracklist.length,
-            status: 'Ready for download!',
+            status: 'Downloaded!',
             done: true,
             zipPath: zipPath,
             filename: cleanDirectoryName + '.zip'
         });
     } catch (error) {
-        console.error('Download ERROR:', error);
+        // Update status to show error on download fail
         downloads.set(downloadID, {
             downloadCount: 0,
             total: album.tracklist.length,
@@ -167,13 +163,13 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
 
 }
 
+// Initial download request. Starts the Album download process
 export const POST: RequestHandler = async ({ request }) => {
     try {
         const { album, audioQuality } = await request.json() as { album: Album, audioQuality: number };
 
         const downloadID = randomUUID();
 
-        // 
         downloadAlbum(downloadID, album, audioQuality);
         return json({ downloadID, message: 'Download started.' })
     } catch (error) {
@@ -182,6 +178,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 }
 
+// Continuously polled during download
 export const GET: RequestHandler = async ({ url }) => {
     const downloadID: string = url.searchParams.get('id') || '';
     const isStatusCheck: boolean = url.searchParams.get('isStatusCheck') === 'true';  // If not a status check, it is a download request
@@ -191,6 +188,7 @@ export const GET: RequestHandler = async ({ url }) => {
     const download = downloads.get(downloadID);
     if (!download) return json({ error: "Download not found." }, { status: 404 });
 
+    // If the poll is a simple status check, return the download's current progress
     if (isStatusCheck) {
         return json({
             downloadCount: download.downloadCount,
@@ -202,6 +200,7 @@ export const GET: RequestHandler = async ({ url }) => {
         });
     }
 
+    // If download is complete and the poll requests the file, provide it
     if (!isStatusCheck && download.done && download.zipPath) {
         try {
             const zipBuffer = await readFile(download.zipPath);
@@ -210,7 +209,7 @@ export const GET: RequestHandler = async ({ url }) => {
             await unlink(download.zipPath);
             downloads.delete(downloadID);
 
-            // 
+            // Reutnr the file data
             return new Response(zipBuffer, {
                 headers: {
                     'Content-Type': 'application/zip',
