@@ -14,6 +14,9 @@
 	let error = $state(false);
 	let message = $state('');
 
+	//
+	let browser = $state('');
+
 	// Tracks quality of audio downloaded from YouTube videos (1-10 where 10 is highest quality)
 	let audioQuality = $state(5);
 
@@ -72,6 +75,7 @@
 							videoURL: track.videoURL
 						}))
 					},
+					browser: browser,
 					audioQuality: audioQuality
 				})
 			});
@@ -290,12 +294,37 @@
 	{/if}
 
 	{#if message}
-		<p class="{error ? 'text-red-500' : 'text-green-500'} self-center italic">
+		<p class="{error ? 'text-red-500' : 'text-green-500'} max-w-1/2 self-center italic">
 			{message}
 		</p>
 	{/if}
 
 	{#if album && album.tracklist.length && ((prevPageState == 'search' && !loading) || prevPageState != 'search')}
+		<div class="flex items-center justify-center gap-2">
+			<div
+				class="group relative inline-block cursor-pointer border-b-2 border-dotted font-bold select-none"
+			>
+				Browser Cookies:
+				<span
+					class="absolute bottom-full left-1/2 z-10 mb-2 hidden min-w-80 -translate-x-1/2 transform rounded-md bg-black px-2 py-1 text-xs text-white group-hover:block"
+					>Permits downloading of age-restricted tracks, if a non age-restricted YouTube account is
+					stored in the chosen browser's cache.</span
+				>
+			</div>
+			<select
+				class="rounded-md border-2 p-2 disabled:cursor-not-allowed disabled:border-white disabled:bg-gray-500 disabled:text-white"
+				bind:value={browser}
+				disabled={downloadProgress.downloading}
+			>
+				<option value="">No browser (will skip age-restricted tracks)</option>
+				<option value="firefox">Firefox</option>
+				<option value="chrome">Chrome</option>
+				<option value="safari">Safari</option>
+				<option value="edge">Edge</option>
+				<option value="opera">Opera</option>
+				<option value="brave">Brave</option>
+			</select>
+		</div>
 		<div class="flex items-center justify-center gap-2">
 			<div
 				class="group relative inline-block cursor-pointer border-b-2 border-dotted font-bold select-none"
@@ -309,10 +338,11 @@
 			<input
 				bind:value={audioQuality}
 				placeholder="Audo Quality"
-				class="w-12 self-center border-2 py-1 pl-2"
+				class="w-12 self-center border-2 py-1 pl-2 disabled:cursor-not-allowed disabled:border-white disabled:bg-gray-500"
 				type="number"
 				min="1"
 				max="10"
+				disabled={downloadProgress.downloading}
 			/>
 		</div>
 		<div>

@@ -9,6 +9,7 @@ import { createWriteStream } from 'fs';
 import archiver from 'archiver';
 import { json } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
+import fs from 'fs';
 
 // Tracks the active download progress
 const downloads = new Map<string, {
@@ -22,7 +23,7 @@ const downloads = new Map<string, {
     done: boolean;
 }>();
 
-async function downloadAlbum(downloadID: string, album: Album, audioQuality: number) {
+async function downloadAlbum(downloadID: string, album: Album, browser: string, audioQuality: number) {
     const tempDir = path.join(os.tmpdir(), `album-${downloadID}`);
     const zipPath = path.join(os.tmpdir(), `album-${downloadID}.zip`);
 
@@ -71,13 +72,24 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
                 continue;
             }
 
-            await youtubedl(track.videoURL, {
-                extractAudio: true,
-                audioFormat: 'mp3',
-                audioQuality: 10 - audioQuality,
-                output: filepath,
-                embedThumbnail: false
-            });
+            // Attempt to download track, skipping age restricted tracks if cache is not properly set
+            try {
+                await youtubedl(track.videoURL, {
+                    ...{
+                        extractAudio: true,
+                        audioFormat: 'mp3',
+                        audioQuality: 10 - audioQuality,
+                        output: filepath,
+                        embedThumbnail: false,
+                        jsRuntimes: 'node',
+                        noWarnings: true,
+                    },
+                    ...(browser && { 'cookies-from-browser': browser })
+                });
+            } catch (error) {
+                if (error instanceof Error && error.message.includes('Sign in to confirm your age')) continue;
+                else throw error;
+            }
 
             // Write the track's metadata to the file contents
             writeTrackMetadata(filepath, track, album, cover);
@@ -145,19 +157,26 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
             filename: cleanDirectoryName + '.zip'
         });
     } catch (error) {
+        let errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+        // 
+        if (['Failed to decrypt with DPAPI', 'cookies database', 'unsupported platform: win32'].some(message => errorMessage.includes(message)))
+            errorMessage = 'Failed to find cache for selected browser, please select another browser.'
+
         // Update status to show error on download fail
         downloads.set(downloadID, {
             downloadCount: 0,
             total: album.tracklist.length,
             status: 'Error occurred',
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: errorMessage,
             done: false
         });
 
         // Clean up if error occurs
         try {
             await rm(tempDir, { recursive: true, force: true });
-            await unlink(zipPath);
+
+            if (fs.existsSync(zipPath)) await unlink(zipPath);
         } catch (err) { console.error("ERROR while cleaning up in downloadAlbum():", err); }
     }
 
@@ -166,11 +185,13 @@ async function downloadAlbum(downloadID: string, album: Album, audioQuality: num
 // Initial download request. Starts the Album download process
 export const POST: RequestHandler = async ({ request }) => {
     try {
-        const { album, audioQuality } = await request.json() as { album: Album, audioQuality: number };
+        const { album, browser, audioQuality } = await request.json() as { album: Album, browser: string, audioQuality: number };
+
+
 
         const downloadID = randomUUID();
 
-        downloadAlbum(downloadID, album, audioQuality);
+        downloadAlbum(downloadID, album, browser, audioQuality);
         return json({ downloadID, message: 'Download started.' })
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error.';

@@ -101,7 +101,8 @@
 			{#if loading}
 				<p>
 					<i>
-						Search for songs in {album.name} ({album.tracklist.length}/{expectedTracklistLength})...
+						Searching for songs in {album.name} ({album.tracklist
+							.length}/{expectedTracklistLength})...
 					</i>
 				</p>
 			{:else}

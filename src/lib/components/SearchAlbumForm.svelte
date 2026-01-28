@@ -39,18 +39,12 @@
 		if (releasesIndex >= idSearchData.releases.length) return null;
 
 		if (idSearchData.releases && idSearchData.releases.length > 0) {
-			// Initialize desired album to best search result
-			let correctAlbum = idSearchData.releases[releasesIndex];
-
 			// If deluxe album is desired, find deluxe version using the releases disambiguation tag
-			if (isDeluxe) {
-				for (let release of idSearchData.releases) {
-					if (release.disambiguation == 'deluxe') {
-						correctAlbum = release;
-						break;
-					}
-				}
-			}
+			// OR if deluxe is not desired, avoid it
+			let correctAlbum =
+				idSearchData.releases.find((release: { disambiguation: string }) =>
+					isDeluxe ? release.disambiguation == 'deluxe' : release.disambiguation != 'deluxe'
+				) || idSearchData.releases[0]; // Return top result if none is found
 
 			const id = correctAlbum.id;
 			const dataSearchURL = `https://musicbrainz.org/ws/2/release/${id}?inc=recordings&fmt=json`;
