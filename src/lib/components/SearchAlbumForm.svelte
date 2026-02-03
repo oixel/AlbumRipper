@@ -43,7 +43,9 @@
 			// OR if deluxe is not desired, avoid it
 			let correctAlbum =
 				idSearchData.releases.find((release: { disambiguation: string }) =>
-					isDeluxe ? release.disambiguation == 'deluxe' : release.disambiguation != 'deluxe'
+					isDeluxe
+						? release.disambiguation?.toLowerCase().includes('deluxe')
+						: release.disambiguation?.toLowerCase().includes('deluxe')
 				) || idSearchData.releases[0]; // Return top result if none is found
 
 			const id = correctAlbum.id;
