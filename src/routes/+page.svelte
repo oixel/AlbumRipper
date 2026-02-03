@@ -15,7 +15,7 @@
 	let message = $state('');
 
 	//
-	let browser = $state('');
+	let browser = $state('firefox');
 
 	// Tracks quality of audio downloaded from YouTube videos (1-10 where 10 is highest quality)
 	let audioQuality = $state(5);
@@ -316,7 +316,6 @@
 				bind:value={browser}
 				disabled={downloadProgress.downloading}
 			>
-				<option value="">No browser (will skip age-restricted tracks)</option>
 				<option value="firefox">Firefox</option>
 				<option value="chrome">Chrome</option>
 				<option value="safari">Safari</option>
