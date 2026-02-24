@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Album } from '$lib/classes/Album.svelte';
 	import { Track } from '$lib/classes/Track.svelte';
+	import type { SearchResult } from '$lib/interfaces/SearchResult.svelte';
+	import SearchResultEntry from './SearchResultEntry.svelte';
 
 	let {
 		albumName = $bindable(),
@@ -26,110 +28,122 @@
 		goToAlbumView: Function;
 	} = $props();
 
-	// Query MusicBrainz's data base for the Album's metadata (album name, artist, cover art, and tracklist)
-	async function getMusicBrainzMetadata(releasesIndex: number = 0) {
+	//
+	let searchResults: Array<SearchResult> = $state([]);
+
+	async function getSearchResults() {
+		// Wipe previous search results
+		searchResults = [];
+
+		const searchURL = `https://musicbrainz.org/ws/2/release/?query=artist:"${artistName}"${albumName ? ` AND release:"${albumName}"&fmt=json` : ''}`;
+		const searchData = await fetch(searchURL).then((result) => result.json());
+
+		//
+		if (!searchData.releases || searchData.releases.length <= 0) {
+			error = true;
+			message = `Album "${albumName}"${artistName ? ` by "${artistName}"` : ''} not found. Please try again!`;
+			return null;
+		}
+
+		const releases = searchData.releases;
+
+		for (let i = 0; i < releases.length; i++) {
+			const release = releases[i];
+
+			const searchResult: SearchResult = {
+				title: release.title ?? 'Unknown Album',
+				artists: release['artist-credit'].map((artist: { name: any }) => artist.name),
+				trackCount: release['track-count'] ?? -1,
+				isDeluxe: release.disambiguation?.toLowerCase().includes('deluxe') ?? false,
+				releaseDate: Object.hasOwn(release, 'release-events')
+					? release['release-events'][0].date
+					: 'N/A',
+				id: release.id
+			};
+
+			searchResults.push(searchResult);
+		}
+	}
+
+	// Query MusicBrainz's data base for the selected album's metadata (album name, artist, cover art, and tracklist)
+	async function getMusicBrainzMetadata(result: SearchResult) {
 		// Wipe currently stored album
 		album = null;
 
-		// Find release ID for the most relevant track with given artist and album names
-		const idSearchURL = `https://musicbrainz.org/ws/2/release/?query=artist:"${artistName}"${albumName ? ` AND release:"${albumName}"&fmt=json` : ''}`;
-		const idSearchData = await fetch(idSearchURL).then((result) => result.json());
+		//
+		const dataSearchURL = `https://musicbrainz.org/ws/2/release/${result.id}?inc=recordings&fmt=json`;
+		const releaseData = await fetch(dataSearchURL).then((result) => result.json());
 
-		// If no found album has a proper tracklist return no album
-		if (releasesIndex >= idSearchData.releases.length) return null;
+		if (releaseData.media && releaseData.media.length > 0) {
+			let coverURL = `https://coverartarchive.org/release/${result.id}/front`;
 
-		if (idSearchData.releases && idSearchData.releases.length > 0) {
-			// If deluxe album is desired, find deluxe version using the releases disambiguation tag
-			// OR if deluxe is not desired, avoid it
-			let correctAlbum =
-				idSearchData.releases.find((release: { disambiguation: string }) =>
-					isDeluxe
-						? release.disambiguation?.toLowerCase().includes('deluxe')
-						: release.disambiguation?.toLowerCase().includes('deluxe')
-				) || idSearchData.releases[0]; // Return top result if none is found
+			album = new Album(
+				result.title,
+				result.artists.join('; '),
+				result.releaseDate.substring(0, 4),
+				coverURL
+			);
+			goToAlbumView();
 
-			const id = correctAlbum.id;
-			const dataSearchURL = `https://musicbrainz.org/ws/2/release/${id}?inc=recordings&fmt=json`;
-			const data = await fetch(dataSearchURL).then((result) => result.json());
+			//
+			const tracklist = releaseData.media[0].tracks;
+			expectedTracklistLength = tracklist.length;
 
-			if (data.media && data.media.length > 0) {
-				const foundAlbumArtists = correctAlbum['artist-credit']
-					.map((artist: { name: any }) => artist.name)
-					.join('; ');
-				let coverURL = `https://coverartarchive.org/release/${id}/front`;
+			// Loop through all tracks in the tracklist and fille the album object with data
+			for (let track of tracklist) {
+				// Create a new track object from the queried data
+				let newTrack: Track = new Track(
+					track.position,
+					track.recording.title,
+					result.artists,
+					track.recording.length
+				);
 
-				album = new Album(correctAlbum.title, foundAlbumArtists, data.date.substr(0, 4), coverURL);
-				goToAlbumView();
+				// Queries for the song's video on YouTube by combining the track's info
+				const query = `${result.artists.join(' ')} ${newTrack.name} official audio`;
+				const data = await fetch(`/api/search?q=${encodeURIComponent(query)}`).then((response) =>
+					response.json()
+				);
 
-				const tracklist = data.media[0].tracks;
-
-				if (!tracklist || !tracklist.length) {
-					return getMusicBrainzMetadata(releasesIndex + 1);
+				// If a video was found for the song, store it in the object!
+				if (data && data.video) {
+					newTrack.videoURL = data.video.url;
 				}
 
-				expectedTracklistLength = tracklist.length;
+				// Prevent error if 'Go Back' is pressed while searching for tracks by returning out before appending
+				if (!album) return;
 
-				// Loop through all tracks in the tracklist and fille the album object with data
-				for (let track of tracklist) {
-					// Find all artists that worked on this track and store their names
-					const artistsData = await fetch(
-						`https://musicbrainz.org/ws/2/recording/${track.recording.id}?inc=releases+artists&fmt=json`
-					).then((result) => result.json());
-					const artists: Array<string> = artistsData['artist-credit'].map(
-						(artist: any) => artist.name
-					);
+				// Append this new song to the end of the album's tracklist array
+				album.tracklist.push(newTrack);
 
-					// Create a new track object from the queried data
-					let newTrack: Track = new Track(
-						track.position,
-						track.recording.title,
-						artists,
-						track.recording.length
-					);
-
-					// Queries for the song's video on YouTube by combining the track's info
-					const query = `${artists.join(' ')} ${newTrack.name} official audio`;
-					const data = await fetch(`/api/search?q=${encodeURIComponent(query)}`).then((response) =>
-						response.json()
-					);
-
-					// If a video was found for the song, store it in the object!
-					if (data && data.video) {
-						newTrack.videoURL = data.video.url;
-					}
-
-					// Prevent error if 'Go Back' is pressed while searching for tracks by returning out before appending
-					if (!album) return;
-
-					// Append this new song to the end of the album's tracklist array
-					album.tracklist.push(newTrack);
-
-					// Intentionally delay next query to prevent hitting API limit
-					await new Promise((resolve) => setTimeout(resolve, 250));
-				}
-			} else {
-				console.log('Album data not found.');
+				// Intentionally delay next query to prevent hitting API limit
+				await new Promise((resolve) => setTimeout(resolve, 250));
 			}
 		} else {
-			error = true;
-			message = `Album "${albumName}"${artistName ? ` by "${artistName}"` : ''} not found. Please try again!`;
+			console.log('Album data not found.');
 		}
 
 		return null;
 	}
 
-	async function search() {
+	//
+	async function searchForReleases() {
 		error = false;
 		message = '';
 
 		loading = true;
 
 		try {
-			await getMusicBrainzMetadata();
-			if (album) message = `Successfully found songs in ${album.name}!`;
+			await getSearchResults();
+			if (searchResults.length)
+				message = `${searchResults.length} releases found for ${albumName}!`;
+			else {
+				error = true;
+				message = `No releases found for ${albumName}.`;
+			}
 		} catch (err) {
 			error = true;
-			message = `ERROR while searching by name and artist: ${err}.`;
+			message = `ERROR while searching for releases: ${err}.`;
 		} finally {
 			loading = false;
 		}
@@ -164,13 +178,20 @@
 	</div>
 </div>
 
-<p class="mx-auto">
-	<i>If the album is not what you expect or data is missing, refresh or search again!</i>
-</p>
+{#if searchResults}
+	<div>
+		{#each searchResults as result}
+			<SearchResultEntry
+				{result}
+				selectResult={(release: SearchResult) => getMusicBrainzMetadata(release)}
+			/>
+		{/each}
+	</div>
+{/if}
 
 <button
 	onclick={() => {
-		search();
+		searchForReleases();
 		editingAlbum = false;
 	}}
 	disabled={loading || !albumName}
