@@ -9,8 +9,6 @@
 		downloading
 	}: { track: Track; album: Album; loading: boolean; downloading: boolean } = $props();
 
-	let editing = $state(false);
-
 	let artistsString = $derived(track.artists.join('; '));
 </script>
 
@@ -20,18 +18,18 @@
 			class="flex h-8 w-8 items-center justify-center"
 			onclick={() => {
 				// Update artists array in Track object if it has been changed
-				if (editing && artistsString != track.artists.join('; ')) {
+				if (track.editing && artistsString != track.artists.join('; ')) {
 					track.artists = artistsString.replaceAll('; ', ';').split(';');
 				}
 
-				editing = !editing;
+				track.editing = !track.editing;
 			}}
 		>
-			<p>{editing ? '✅' : '✏️'}</p>
+			<p>{track.editing ? '✅' : '✏️'}</p>
 		</button>
 	{/if}
 
-	{#if !editing}
+	{#if !track.editing}
 		<p class="flex-1">
 			<b>Track #{track.number}</b> - {track.name}
 			<b>Artist{track.artists.length > 1 ? 's' : ''}:</b>
@@ -54,7 +52,7 @@
 			class="flex h-8 w-8 items-center justify-center"
 			onclick={() => {
 				album.removeTrack(track);
-				editing = false;
+				track.editing = false;
 			}}
 		>
 			<p>🗑️</p>
