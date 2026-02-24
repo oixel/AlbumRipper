@@ -232,7 +232,7 @@
 	>
 {/if}
 
-<form class="flex flex-col items-center gap-5">
+<form class="flex h-full min-h-full flex-col items-center gap-5">
 	<h1 class="text-center text-4xl select-none">Album Ripper</h1>
 
 	{#if !pageState}

@@ -150,9 +150,10 @@
 	}
 </script>
 
-<div class="flex flex-col items-center justify-center gap-4">
+<div class="flex h-full w-full flex-col items-center justify-center gap-4">
+	<h2 class="text-2xl font-bold underline select-none">Search</h2>
 	<div class="flex w-full max-w-md items-center justify-center gap-4">
-		<label for="album-name"><b>Album:</b></label>
+		<label for="album-name" class="select-none"><b>Album:</b></label>
 		<input
 			name="album-name"
 			bind:value={albumName}
@@ -160,14 +161,9 @@
 			placeholder="Album Name"
 			class="w-full border-2 py-1 pl-2"
 		/>
-
-		<div class="flex items-center justify-center gap-2">
-			<input class="bg-red-300" type="checkbox" name="deluxe-toggle" bind:checked={isDeluxe} />
-			<label for="deluxe-toggle" class="pb-1">Deluxe?</label>
-		</div>
 	</div>
 	<div class="flex w-full max-w-md items-center justify-center gap-4">
-		<label for="artist-name"><b>Artist:</b></label>
+		<label for="artist-name" class="select-none"><b>Artist:</b></label>
 		<input
 			name="artist-name"
 			bind:value={artistName}
@@ -176,27 +172,42 @@
 			class="w-full border-2 py-1 pl-2"
 		/>
 	</div>
+
+	{#if searchResults.length}
+		<h3 class="font-bold">Results:</h3>
+		<div class="aspect-video max-h-1/2 overflow-scroll border-2 px-3">
+			<table>
+				<tbody>
+					<tr class="sticky top-0 bg-white">
+						<th class="max-w-32 overflow-hidden text-nowrap text-ellipsis whitespace-nowrap"
+							>Album</th
+						>
+						<th>Artist(s)</th>
+						<th>Track(s)</th>
+						<th>Deluxe</th>
+						<th>Release</th>
+						<th></th>
+					</tr>
+					{#each searchResults as result}
+						<SearchResultEntry
+							{result}
+							selectResult={(release: SearchResult) => getMusicBrainzMetadata(release)}
+						/>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	{/if}
+
+	<button
+		onclick={() => {
+			searchForReleases();
+			editingAlbum = false;
+		}}
+		disabled={loading || !albumName}
+		type="submit"
+		class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
+	>
+		{loading ? 'Searching...' : 'Search'}
+	</button>
 </div>
-
-{#if searchResults}
-	<div>
-		{#each searchResults as result}
-			<SearchResultEntry
-				{result}
-				selectResult={(release: SearchResult) => getMusicBrainzMetadata(release)}
-			/>
-		{/each}
-	</div>
-{/if}
-
-<button
-	onclick={() => {
-		searchForReleases();
-		editingAlbum = false;
-	}}
-	disabled={loading || !albumName}
-	type="submit"
-	class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
->
-	{loading ? 'Searching...' : 'Search'}
-</button>
