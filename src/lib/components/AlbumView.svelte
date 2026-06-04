@@ -5,7 +5,7 @@
 	import TrackEntry from '$lib/components/TrackEntry.svelte';
 
 	let {
-		album,
+		album = $bindable(),
 		expectedTracklistLength,
 		editingAlbum,
 		loading,
@@ -95,8 +95,13 @@
 	<div class="flex max-h-72 flex-col items-center justify-center gap-2">
 		<h2 class="font-bold">{album.name} Tracklist:</h2>
 		<div class="flex h-fit w-xl max-w-xl flex-col gap-1 overflow-auto rounded-md border-2 p-2 px-4">
-			{#each album.tracklist as track}
-				<TrackEntry {track} {album} {loading} downloading={downloadProgress.downloading} />
+			{#each album.tracklist as track, i (track.number)}
+				<TrackEntry
+					bind:track={album.tracklist[i]}
+					{album}
+					{loading}
+					downloading={downloadProgress.downloading}
+				/>
 			{/each}
 			{#if loading}
 				<p>

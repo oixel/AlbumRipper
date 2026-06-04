@@ -3,13 +3,40 @@
 	import type { Album } from '$lib/classes/Album.svelte';
 
 	let {
-		track,
+		track = $bindable(),
 		album,
 		loading,
 		downloading
 	}: { track: Track; album: Album; loading: boolean; downloading: boolean } = $props();
 
 	let artistsString = $derived(track.artists.join('; '));
+
+	// Either returns a valid, sanitized YouTube URL or forces input to be empty to bring up red "[ Video Missing ]" text
+	function cleanVideoURL() {
+		try {
+			const url = new URL(track.videoURL);
+
+			if (
+				(url.hostname === 'youtube.com' || url.hostname === 'www.youtube.com') &&
+				url.pathname == '/watch'
+			) {
+				// Clean up regular YouTube URL
+				const videoID = url.searchParams.get('v');
+				track.videoURL = videoID ? `https://www.youtube.com/watch?v=${videoID}` : '';
+			} else if (url.hostname === 'youtu.be') {
+				// Clean up shortened URL
+				const videoID = url.pathname.slice(1);
+				track.videoURL = videoID ? `https://www.youtube.com/watch?v=${videoID}` : '';
+			} else {
+				track.videoURL = '';
+			}
+		} catch {
+			console.log('invalid url');
+			track.videoURL = '';
+		}
+	}
+
+	cleanVideoURL(); // Clean videoURL when track is initially loaded
 </script>
 
 <div class="flex gap-2">
@@ -39,6 +66,8 @@
 			<a
 				class="flex-nowrap"
 				href={track.videoURL}
+				// Informs SvelteKit that the videoURL is not a local path
+				rel="external"
 				aria-label={`YouTube Video URL for track named ${track.name}`}
 				target="_blank"
 			>
@@ -79,6 +108,7 @@
 			placeholder="YouTube URL"
 			class="w-full max-w-md self-center border-2 py-1 pl-2"
 			type="url"
+			onfocusout={cleanVideoURL}
 		/>
 	{/if}
 </div>

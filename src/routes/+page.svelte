@@ -290,7 +290,7 @@
 			}}
 		/>
 	{:else if pageState == 'album' && album}
-		<AlbumView {album} {expectedTracklistLength} {editingAlbum} {loading} {downloadProgress} />
+		<AlbumView bind:album {expectedTracklistLength} {editingAlbum} {loading} {downloadProgress} />
 	{/if}
 
 	{#if message}

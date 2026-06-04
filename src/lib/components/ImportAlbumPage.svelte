@@ -9,7 +9,7 @@
 	}: {
 		album: Album | null;
 		error: boolean;
-		message: String;
+		message: string;
 		goToAlbumView: Function;
 	} = $props();
 
@@ -39,7 +39,7 @@
 						message = 'Failed to import album.\nAlbum file is formatted incorrectly.';
 					}
 				},
-				(_err) => {
+				() => {
 					error = true;
 					message = 'Failed to import album. Not JSON.';
 				}
