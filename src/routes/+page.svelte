@@ -27,8 +27,8 @@
 
 	// Album attributes
 	let album: Album | null = $state(null);
-	let expectedTracklistLength: number = $state(0); // Gets set in SearchAlbumForm to prevent editing while tracklist loads
-	let editingAlbum = $state(false);
+	let expectedTracklistLength: number = $state(0);
+	let editing = $state(false);
 
 	let downloadProgress = new DownloadProgress();
 
@@ -43,8 +43,8 @@
 	async function downloadAlbum() {
 		if (!album || album.tracklist.length == 0) return;
 
-		// Exit out of album edit mode
-		editingAlbum = false;
+		// Exit out of edit mode
+		editing = false;
 
 		// Reset all variables from previous download
 		downloadProgress.downloadCount = 0;
@@ -273,7 +273,7 @@
 			bind:album
 			bind:loading
 			bind:expectedTracklistLength
-			bind:editingAlbum
+			bind:editing
 			bind:error
 			bind:message
 			goToAlbumView={() => {
@@ -290,7 +290,7 @@
 			}}
 		/>
 	{:else if pageState == 'album' && album}
-		<AlbumView bind:album {expectedTracklistLength} {editingAlbum} {loading} {downloadProgress} />
+		<AlbumView bind:album {expectedTracklistLength} {editing} {loading} {downloadProgress} />
 	{/if}
 
 	{#if message}

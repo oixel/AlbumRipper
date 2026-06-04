@@ -5,9 +5,9 @@
 	let {
 		track = $bindable(),
 		album,
-		loading,
+		editing,
 		downloading
-	}: { track: Track; album: Album; loading: boolean; downloading: boolean } = $props();
+	}: { track: Track; album: Album; editing: boolean; downloading: boolean } = $props();
 
 	let artistsString = $derived(track.artists.join('; '));
 
@@ -31,7 +31,6 @@
 				track.videoURL = '';
 			}
 		} catch {
-			console.log('invalid url');
 			track.videoURL = '';
 		}
 	}
@@ -40,23 +39,7 @@
 </script>
 
 <div class="flex gap-2">
-	{#if !loading && !downloading}
-		<button
-			class="flex h-8 w-8 items-center justify-center"
-			onclick={() => {
-				// Update artists array in Track object if it has been changed
-				if (track.editing && artistsString != track.artists.join('; ')) {
-					track.artists = artistsString.replaceAll('; ', ';').split(';');
-				}
-
-				track.editing = !track.editing;
-			}}
-		>
-			<p>{track.editing ? '✅' : '✏️'}</p>
-		</button>
-	{/if}
-
-	{#if !track.editing}
+	{#if !editing}
 		<p class="flex-1">
 			<b>Track #{track.number}</b> - {track.name}
 			<b>Artist{track.artists.length > 1 ? 's' : ''}:</b>
@@ -81,7 +64,6 @@
 			class="flex h-8 w-8 items-center justify-center"
 			onclick={() => {
 				album.removeTrack(track);
-				track.editing = false;
 			}}
 		>
 			<p>🗑️</p>
@@ -100,6 +82,12 @@
 		/>
 		<input
 			bind:value={artistsString}
+			onfocusout={() => {
+				// Update artists array in Track object if it has been changed
+				if (artistsString != track.artists.join('; ')) {
+					track.artists = artistsString.replaceAll('; ', ';').split(';');
+				}
+			}}
 			placeholder="Track Artist(s)"
 			class="w-full max-w-md self-center border-2 py-1 pl-2"
 		/>

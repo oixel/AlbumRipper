@@ -7,13 +7,13 @@
 	let {
 		album = $bindable(),
 		expectedTracklistLength,
-		editingAlbum,
+		editing,
 		loading,
 		downloadProgress
 	}: {
 		album: Album;
 		expectedTracklistLength: number;
-		editingAlbum: boolean;
+		editing: boolean;
 		loading: boolean;
 		downloadProgress: DownloadProgress;
 	} = $props();
@@ -21,7 +21,7 @@
 
 <div class="flex items-center justify-center gap-5">
 	<div class="flex flex-col items-center justify-center gap-2">
-		{#if !editingAlbum}
+		{#if !editing}
 			<img
 				src={album.coverURL}
 				alt={`Album cover for the album ${album.name}`}
@@ -39,7 +39,7 @@
 				<div class="flex items-center justify-center gap-2">
 					<label for="album-name"><b>Album:</b></label>
 
-					{#if !editingAlbum}
+					{#if !editing}
 						<p>{album.name}</p>
 					{:else}
 						<input
@@ -53,7 +53,7 @@
 				<div class="flex items-center justify-center gap-2">
 					<label for="album-artist"><b>Album Artist:</b></label>
 
-					{#if !editingAlbum}
+					{#if !editing}
 						<p>{album.artist}</p>
 					{:else}
 						<input
@@ -67,7 +67,7 @@
 				<div class="flex items-center justify-center gap-2">
 					<label for="album-year"><b>Release Year:</b></label>
 
-					{#if !editingAlbum}
+					{#if !editing}
 						<p>{album.year}</p>
 					{:else}
 						<input
@@ -86,8 +86,8 @@
 				<button
 					class="flex h-8 w-8 items-center justify-center"
 					onclick={() => {
-						editingAlbum = !editingAlbum;
-					}}><p>{editingAlbum ? '✅' : '✏️'}</p></button
+						editing = !editing;
+					}}><p>{editing ? '✅' : '✏️'}</p></button
 				>
 			{/if}
 		</div>
@@ -99,7 +99,7 @@
 				<TrackEntry
 					bind:track={album.tracklist[i]}
 					{album}
-					{loading}
+					{editing}
 					downloading={downloadProgress.downloading}
 				/>
 			{/each}

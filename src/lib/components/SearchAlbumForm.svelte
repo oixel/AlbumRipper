@@ -11,7 +11,7 @@
 		album = $bindable(),
 		loading = $bindable(),
 		expectedTracklistLength = $bindable(),
-		editingAlbum = $bindable(),
+		editing = $bindable(),
 		error = $bindable(),
 		message = $bindable(),
 		goToAlbumView
@@ -22,7 +22,7 @@
 		album: Album | null;
 		loading: boolean;
 		expectedTracklistLength: number;
-		editingAlbum: boolean;
+		editing: boolean;
 		error: boolean;
 		message: string;
 		goToAlbumView: Function;
@@ -213,7 +213,7 @@
 	<button
 		onclick={() => {
 			searchForReleases();
-			editingAlbum = false;
+			editing = false;
 		}}
 		disabled={loading || (!albumName && !artistName)}
 		type="submit"
