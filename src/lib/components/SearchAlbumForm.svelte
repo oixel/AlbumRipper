@@ -28,7 +28,6 @@
 		goToAlbumView: Function;
 	} = $props();
 
-	//
 	let searchResults: Array<SearchResult> = $state([]);
 
 	async function getSearchResults() {
@@ -38,7 +37,6 @@
 		const searchURL = `https://musicbrainz.org/ws/2/release/?query=artist:"${artistName}"${albumName ? ` AND release:"${albumName}"&fmt=json` : ''}`;
 		const searchData = await fetch(searchURL).then((result) => result.json());
 
-		//
 		if (!searchData.releases || searchData.releases.length <= 0) {
 			error = true;
 			message = `Album "${albumName}"${artistName ? ` by "${artistName}"` : ''} not found. Please try again!`;
@@ -65,12 +63,27 @@
 		}
 	}
 
+	// Try to fetch from YouTube, but limit rate and retry if hitting request limit
+	async function fetchWithRetry(url: string, retries = 3, delay = 500): Promise<any> {
+		for (let i = 0; i < retries; i++) {
+			const response = await fetch(url);
+			if (response.status === 429) {
+				// Wait longer each retry
+				await new Promise((resolve) => setTimeout(resolve, delay * (i + 1)));
+				continue;
+			}
+			return response.json();
+		}
+
+		return null;
+	}
+
 	// Query MusicBrainz's data base for the selected album's metadata (album name, artist, cover art, and tracklist)
 	async function getMusicBrainzMetadata(result: SearchResult) {
-		// Wipe currently stored album
+		// Wipe any old data
 		album = null;
+		message = '';
 
-		//
 		const dataSearchURL = `https://musicbrainz.org/ws/2/release/${result.id}?inc=recordings&fmt=json`;
 		const releaseData = await fetch(dataSearchURL).then((result) => result.json());
 
@@ -85,15 +98,15 @@
 			);
 			goToAlbumView();
 
-			//
-			const tracklist = releaseData.media[0].tracks;
+			// Ensure that all discs are accounted for when loading tracks
+			const tracklist = releaseData.media.flatMap((disc: any) => disc.tracks);
 			expectedTracklistLength = tracklist.length;
 
-			// Loop through all tracks in the tracklist and fille the album object with data
-			for (let track of tracklist) {
+			// Loop through all tracks in the tracklist and fill the album object with data
+			for (let [index, track] of tracklist.entries()) {
 				// Create a new track object from the queried data
 				let newTrack: Track = new Track(
-					track.position,
+					index + 1,
 					track.recording.title,
 					result.artists,
 					track.recording.length
@@ -101,9 +114,7 @@
 
 				// Queries for the song's video on YouTube by combining the track's info
 				const query = `${result.artists.join(' ')} ${newTrack.name} official audio`;
-				const data = await fetch(`/api/search?q=${encodeURIComponent(query)}`).then((response) =>
-					response.json()
-				);
+				const data = await fetchWithRetry(`/api/search?q=${encodeURIComponent(query)}`);
 
 				// If a video was found for the song, store it in the object!
 				if (data && data.video) {
@@ -126,7 +137,7 @@
 		return null;
 	}
 
-	//
+	// Display count of release options
 	async function searchForReleases() {
 		error = false;
 		message = '';
@@ -188,7 +199,7 @@
 						<th>Release</th>
 						<th></th>
 					</tr>
-					{#each searchResults as result}
+					{#each searchResults as result (result.id)}
 						<SearchResultEntry
 							{result}
 							selectResult={(release: SearchResult) => getMusicBrainzMetadata(release)}
