@@ -34,7 +34,7 @@
 		// Wipe previous search results
 		searchResults = [];
 
-		const searchURL = `https://musicbrainz.org/ws/2/release/?query=artist:"${artistName}"${albumName ? ` AND release:"${albumName}"&fmt=json` : ''}`;
+		const searchURL = `https://musicbrainz.org/ws/2/release/?query=${artistName ? `artist:"${artistName}"` : ''}${albumName ? ` AND release:"${albumName}"` : ''}&fmt=json`;
 		const searchData = await fetch(searchURL).then((result) => result.json());
 
 		if (!searchData.releases || searchData.releases.length <= 0) {
@@ -147,10 +147,10 @@
 		try {
 			await getSearchResults();
 			if (searchResults.length)
-				message = `${searchResults.length} releases found for ${albumName}!`;
+				message = `${searchResults.length} releases found for ${albumName ? `Album: ${albumName}` : ''} ${artistName ? `Artist: ${artistName}` : ''}!`;
 			else {
 				error = true;
-				message = `No releases found for ${albumName}.`;
+				message = `No releases found for ${albumName ? `Album: ${albumName}` : ''} ${artistName ? `Artist: ${artistName}` : ''}.`;
 			}
 		} catch (err) {
 			error = true;
@@ -215,7 +215,7 @@
 			searchForReleases();
 			editingAlbum = false;
 		}}
-		disabled={loading || !albumName}
+		disabled={loading || (!albumName && !artistName)}
 		type="submit"
 		class="mx-auto max-w-32 bg-black text-white not-disabled:hover:font-bold not-disabled:hover:text-black disabled:cursor-not-allowed disabled:bg-gray-500"
 	>
