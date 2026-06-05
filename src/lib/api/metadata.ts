@@ -27,7 +27,11 @@ export async function writeTrackMetadata(filePath: string, track: Track, album: 
     if (album.artist) tags.performerInfo = album.artist;
     if (track.artists.length) tags.artist = track.artists.join('; ');
     if (album.year) tags.year = album.year;
-    if (track.number) tags.trackNumber = track.number.toString();
+    if (track.disc) tags.partOfSet = `${track.disc}/${album.discCount}`;
+    if (track.number) {
+        const tracksInDisc = album.tracklist.filter((t: Track) => t.disc === track.disc).length;
+        tags.trackNumber = `${track.number}/${tracksInDisc}`;
+    }
     if (track.duration) tags.length = track.duration.toString();
 
     // Only apply cover image data to tags if image buffer was properly fetched

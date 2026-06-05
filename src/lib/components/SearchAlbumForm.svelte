@@ -99,14 +99,18 @@
 			goToAlbumView();
 
 			// Ensure that all discs are accounted for when loading tracks
-			const tracklist = releaseData.media.flatMap((disc: any) => disc.tracks);
+			const tracklist = releaseData.media.flatMap((disc: any) =>
+				disc.tracks.map((track: any) => ({ ...track, disc: disc.position }))
+			);
 			expectedTracklistLength = tracklist.length;
 
 			// Loop through all tracks in the tracklist and fill the album object with data
-			for (let [index, track] of tracklist.entries()) {
+			for (let track of tracklist) {
 				// Create a new track object from the queried data
 				let newTrack: Track = new Track(
-					index + 1,
+					track.id,
+					track.disc,
+					track.position,
 					track.recording.title,
 					result.artists,
 					track.recording.length

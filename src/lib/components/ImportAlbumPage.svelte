@@ -27,6 +27,7 @@
 							albumFile.artist,
 							albumFile.year,
 							albumFile.coverURL,
+							albumFile.discCount,
 							albumFile.tracklist
 						);
 

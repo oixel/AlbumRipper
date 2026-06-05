@@ -55,8 +55,10 @@ async function downloadAlbum(downloadID: string, album: Album, browser: string, 
                 done: false
             });
 
+            const discNum = `${album.discCount > 1 ? String(track.disc) + '-' : ''}`
+            const trackNum = `${String(track.number).padStart(2, '0')}`;
             const cleanTitle = trackName.replace(/[<>:"/\\|?*]/g, '');
-            const filename = `${String(track.number).padStart(2, '0')} ${cleanTitle}.mp3`;
+            const filename = `${discNum}${trackNum} ${cleanTitle}.mp3`;
             const filepath = path.join(tempDir, filename);
 
             // Skip track if no video is provided for it

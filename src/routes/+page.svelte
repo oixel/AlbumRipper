@@ -67,9 +67,12 @@
 						artist: album.artist,
 						year: album.year,
 						coverURL: album.coverURL,
+						discCount: album.discCount,
 						tracklist: album.tracklist.map((track) => ({
 							name: track.name,
+							id: track.id,
 							artists: track.artists,
+							disc: track.disc,
 							number: track.number,
 							duration: track.duration,
 							videoURL: track.videoURL
@@ -184,9 +187,12 @@
 			artist: album.artist,
 			year: album.year,
 			coverURL: album.coverURL,
+			discCount: album.discCount,
 			tracklist: album.tracklist.map((track) => ({
 				name: track.name,
+				id: track.id,
 				artists: track.artists,
+				disc: track.disc,
 				number: track.number,
 				duration: track.duration,
 				videoURL: track.videoURL

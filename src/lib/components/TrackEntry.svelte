@@ -41,7 +41,7 @@
 <div class="flex gap-2">
 	{#if !editing}
 		<p class="flex-1">
-			<b>Track #{track.number}</b> - {track.name}
+			<b>Disc {track.disc} - Track #{track.number}</b> - {track.name}
 			<b>Artist{track.artists.length > 1 ? 's' : ''}:</b>
 			{track.artists.join('; ')}
 		</p>
@@ -68,6 +68,14 @@
 		>
 			<p>🗑️</p>
 		</button>
+		<input
+			bind:value={track.disc}
+			placeholder="Disc #"
+			onchange={() => album.updateDiscCount()}
+			class="w-12 self-center border-2 py-1 pl-2"
+			type="number"
+			min="1"
+		/>
 		<input
 			bind:value={track.number}
 			placeholder="Track #"

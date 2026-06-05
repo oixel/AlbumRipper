@@ -95,7 +95,8 @@
 	<div class="flex max-h-72 flex-col items-center justify-center gap-2">
 		<h2 class="font-bold">{album.name} Tracklist:</h2>
 		<div class="flex h-fit w-xl max-w-xl flex-col gap-1 overflow-auto rounded-md border-2 p-2 px-4">
-			{#each album.tracklist as track, i (track.number)}
+			<!-- Use MusicBrainz's special track ID so that key remains constant -->
+			{#each album.tracklist as track, i (track.id)}
 				<TrackEntry
 					bind:track={album.tracklist[i]}
 					{album}
@@ -114,7 +115,10 @@
 				<button
 					class="bg-green-300"
 					onclick={() => {
-						album.tracklist.push(new Track(album.tracklist.length + 1, '', [], 0));
+						album.tracklist.push(
+							// Use randomUUID since customly defined tracks do not have MusicBrainz ID data
+							new Track(crypto.randomUUID(), 1, album.tracklist.length + 1, '', [], 0)
+						);
 					}}>+ Add Track</button
 				>
 			{/if}
